@@ -6,15 +6,22 @@ deferred to keep the beta stable rather than risk a last-minute rewrite.
 
 ## Known beta limitations
 
-### 1. `main.py` is a monolith (~5,300 lines)
+### 1. `main.py` is a monolith (~5,300 lines) — IN PROGRESS
 The command dispatcher (`handle_command`) and the agent loop live in a single
-large module. It works and is tested, but it's hard to navigate and contribute
-to.
+large module.
 
-**Plan:** Extract command handlers into a `cmd_handlers/` package
-(`session.py`, `memory.py`, `infra.py`, `agents.py`, `services.py`) behind a
-small dispatch table, keeping shared global state in one place. Pure refactor —
-no behaviour change, guarded by the existing `test_slash_commands.py` suite.
+**Done (v3.1.x):** Introduced the `cmd_handlers/` package with a
+`CommandContext` + dispatch registry. `handle_command` now consults the modular
+dispatch first and falls back to the legacy elif-chain for anything not yet
+migrated. Read-only commands (`/clear`, `/undo`, `/history`, `/compress`,
+`/tools`, `/usage`, `/cost`) are extracted into `cmd_handlers/info.py` and
+`cmd_handlers/session_cmds.py`, covered by `tests/test_cmd_handlers.py`.
+
+**Remaining:** Migrate the global-state-mutating commands (`/gateway`,
+`/dashboard`, `/approve`, `/mcp`, `/webhook`, `/rag`, `/secrets`, `/heartbeat`,
+`/goal`, `/macro`, `/plugin`, `/curator`) — these reassign main.py module
+globals and need the context to carry mutable service handles. Then move the
+agent loop into its own module.
 
 **Target:** v3.2.0
 
