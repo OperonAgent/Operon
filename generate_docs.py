@@ -40,7 +40,7 @@ ORANGE_WARN  = HexColor("#F97316")
 
 PAGE_W, PAGE_H = A4   # 595.28 x 841.89
 
-OUTPUT_PATH = Path.home() / "Desktop" / "Operon_Documentation.pdf"
+OUTPUT_PATH = Path(__file__).resolve().parent / "Operon_Documentation.pdf"
 # Prefer the newer triangle logo; fall back to the original
 _LOGO_CANDIDATES = [
     Path.home() / "Downloads" / "Operon Logo.png",
@@ -735,36 +735,49 @@ def build_installation():
 
     elems += sub_section("Prerequisites")
     elems += bullet_list([
-        "Python 3.11 or later",
-        "pip (bundled with Python)",
+        "Python 3.9 or later (3.11+ recommended)",
         "git (for cloning)",
-        "macOS / Linux / Windows WSL2 (Windows native: partial support)",
-        "<i>Optional:</i> Node.js (for filesystem/git MCP servers via npx)",
+        "macOS, Linux, or Windows",
+        "<i>Optional:</i> Ollama for fully-offline local models (no API key needed)",
         "<i>Optional:</i> Docker + Docker Compose (for containerised deployment)",
-        "<i>Optional:</i> Playwright browsers: <code>playwright install chromium</code>",
-        "<i>Optional:</i> paramiko: <code>pip install paramiko</code> (SSH tools)",
     ])
 
-    elems += sub_section("Step 1 — Clone &amp; Install")
+    elems += sub_section("Step 1 — One-Command Install (recommended)")
+    elems.append(P(
+        "The installer handles <b>everything</b> — Python dependencies <b>and</b> the "
+        "Playwright Chromium browser binary (the ~120 MB download that a plain "
+        "<code>pip install</code> skips). It creates a <code>.venv</code>, installs "
+        "Operon, and registers the <code>operon</code> command.", "body"))
     elems += code_block([
-        "# Clone the repository",
         "git clone https://github.com/OWNER/operon.git",
         "cd operon",
         "",
-        "# Install all core + recommended dependencies (includes web search)",
+        "# macOS / Linux:",
+        "./install.sh",
+        "",
+        "# Windows:",
+        "powershell -ExecutionPolicy Bypass -File install.ps1",
+        "",
+        "# Any platform (Python):",
+        "python install.py            # core + recommended + browser binary",
+        "python install.py --full     # also voice, databases, screen capture",
+    ], label="Shell")
+    elems.append(P(
+        "<b>Why the browser is a separate step:</b> <code>pip install playwright</code> "
+        "installs only the Python package. The actual Chromium browser binary needs a "
+        "separate <code>playwright install chromium</code>. Operon's installer — and a "
+        "runtime self-heal hook — do this for you. If you ever browse without the binary, "
+        "Operon downloads it on demand.", "body"))
+
+    elems += sub_section("Step 1b — Manual install (alternative)")
+    elems += code_block([
         "pip install -r requirements.txt",
+        "python -m core.bootstrap --browser   # downloads Chromium (~120 MB)",
         "",
-        "# What requirements.txt includes:",
-        "#   requests, beautifulsoup4  — required",
-        "#   duckduckgo_search         — web search (no API key needed)",
-        "#   psutil                    — CPU/RAM telemetry",
-        "#   pypdf, reportlab          — PDF read/write",
-        "",
-        "# Optional: browser automation (for browser_* tools)",
-        "pip install playwright && playwright install chromium",
-        "",
-        "# Optional: SSH support",
-        "pip install paramiko",
+        "# Provision helpers:",
+        "python -m core.bootstrap            # core + recommended + browser",
+        "python -m core.bootstrap --full     # every optional feature",
+        "python -m core.bootstrap --check    # status only, install nothing",
     ], label="Shell")
 
     elems += sub_section("Step 2 — First Launch")
@@ -788,10 +801,16 @@ def build_installation():
     elems.append(three_col_table(wizard_rows, header=["#", "Field", "Value / Notes"]))
 
     elems += sub_section("Step 4 — Verify Installation")
-    elems += code_block(["/doctor"], label="Operon REPL")
+    elems += code_block([
+        "operon --check-deps     # dependency + browser-binary status",
+        "operon                  # launch, then type:",
+        "/doctor                 # full in-app health check",
+    ], label="Shell / Operon REPL")
     elems.append(P(
-        "The <b>/doctor</b> command checks all dependencies, API keys, local model servers, "
-        "tool count, memory status, and optional services (dashboard, MCP, Curator, gateway).", "body"))
+        "<b>operon --check-deps</b> reports the status of every package plus the Chromium "
+        "browser binary. The <b>/doctor</b> command (inside Operon) checks API keys, local "
+        "model servers, tool count, memory status, and optional services "
+        "(dashboard, MCP, Curator, gateway).", "body"))
 
     elems += sub_section("Dependencies Reference")
     dep_rows = [

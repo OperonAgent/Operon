@@ -10,7 +10,7 @@
 
 PYTHON ?= python3
 
-.PHONY: install install-full browser check run test clean doctor
+.PHONY: install install-full browser check run test clean doctor docs
 
 install:
 	$(PYTHON) install.py
@@ -29,6 +29,10 @@ run:
 
 doctor:
 	$(PYTHON) main.py --check-deps
+
+docs:
+	$(PYTHON) generate_docs.py
+	$(PYTHON) generate_setup_guide.py
 
 test:
 	$(PYTHON) -m pytest tests/ -q
