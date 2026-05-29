@@ -1,0 +1,66 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+develop-eggs/
+.installed.cfg
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# ── PyInstaller build output (large — never commit) ───────────────────────────
+dist/
+*.spec.bak
+
+# ── Test / coverage ───────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# ── Operon runtime data (user-specific, may contain secrets) ──────────────────
+.operon/
+*.session
+operon_*.json
+knowledge.json
+secrets.enc
+~/.operon/
+
+# ── Secrets / credentials (NEVER commit) ──────────────────────────────────────
+*.key
+*.pem
+config.json
+.env.local
+.env.*.local
+
+# ── Generated artifacts ───────────────────────────────────────────────────────
+*.log
+agent_comparison_v*.png
+comparison_matrix.png
+Operon_Documentation.pdf
+operon_project_handoff.pdf
+
+# ── OS / editor ───────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

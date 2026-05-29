@@ -1,0 +1,100 @@
+# Operon — Python dependencies
+#
+# RECOMMENDED INSTALL (also downloads the browser binary):
+#     python install.py            # cross-platform one-shot installer
+#     ./install.sh                 # macOS/Linux convenience wrapper
+#     .\install.ps1                # Windows convenience wrapper
+#
+# Manual install:
+#     pip install -r requirements.txt
+#     python -m core.bootstrap --browser   # <-- downloads Chromium (~120 MB)
+#
+# IMPORTANT: `pip install playwright` installs the PACKAGE only. The actual
+# browser BINARY needs a separate step (`playwright install chromium`).
+# install.py and core.bootstrap do this for you automatically.
+
+# ── Required ──────────────────────────────────────────────────────────────────
+requests>=2.31.0
+beautifulsoup4>=4.12.0        # web scraping, X/Twitter search
+duckduckgo_search>=6.0.0      # web search — no API key needed
+
+# ── Strongly recommended (installed by default) ──────────────────────────────
+psutil>=5.9.8                 # telemetry (CPU/RAM in banner and dashboard)
+pygments>=2.17.0              # syntax highlighting in code block output
+prompt_toolkit>=3.0.0         # Claude Code-style TUI input bar
+pypdf>=4.0.0                  # PDF reading (also used by RAG pipeline)
+reportlab>=4.0.0              # PDF generation
+playwright>=1.40.0            # headless browser — then: python -m core.bootstrap --browser
+paramiko>=3.4.0               # SSH/SFTP; falls back to system ssh binary if absent
+
+# ── Optional: OpenAI / Anthropic vision, TTS, image gen ──────────────────────
+# openai>=1.30.0
+# anthropic>=0.25.0
+
+# ── Optional: Discord integration ────────────────────────────────────────────
+# py-cord>=2.4.0              # Discord bot API (webhook mode needs no package)
+
+# ── Optional: Slack integration ──────────────────────────────────────────────
+# slack-sdk>=3.26.0           # Slack Web API (webhook mode needs no package)
+
+# ── Optional: WhatsApp integration ───────────────────────────────────────────
+# twilio>=8.0.0               # WhatsApp via Twilio (requires free Twilio account)
+
+# ── Optional: Database backends ──────────────────────────────────────────────
+# psycopg2-binary>=2.9.9      # PostgreSQL
+# PyMySQL>=1.1.0              # MySQL / MariaDB
+# pymongo>=4.6.0              # MongoDB
+
+# ── Optional: Voice input / output ───────────────────────────────────────────
+# sounddevice>=0.4.6          # audio recording (preferred over pyaudio)
+# numpy>=1.26.0               # required by sounddevice
+# openai-whisper>=20231117    # local Whisper STT (pip install openai-whisper)
+# pyaudio>=0.2.14             # audio recording fallback
+# pyttsx3>=2.90               # offline TTS (cross-platform)
+
+# ── Optional: Secrets manager ────────────────────────────────────────────────
+# keyring>=24.3.0             # OS keychain (macOS Keychain, Windows Credential Manager)
+# cryptography>=42.0.0        # Fernet AES encryption fallback
+
+# ── Optional: Docker sandboxed execution ─────────────────────────────────────
+# docker>=7.0.0               # Docker Python SDK (falls back to docker CLI)
+
+# ── Optional: RAG pipeline ────────────────────────────────────────────────────
+# numpy>=1.26.0               # cosine similarity (much faster than pure Python)
+# bs4                         # HTML extraction (already in required block above)
+# pypdf>=4.0.0                # PDF extraction (already listed above)
+
+# ── Optional: LightRAG (graph-aware RAG) ─────────────────────────────────────
+# lightrag-hku>=0.0.3         # pip install lightrag-hku + OPENAI_API_KEY required
+
+# ── Optional: Pluggable memory providers ─────────────────────────────────────
+# mem0ai>=0.0.20              # Mem0 cross-session user memory (export MEM0_API_KEY=...)
+
+# ── Optional: Signal messaging ───────────────────────────────────────────────
+# signal-cli: NOT a pip package — see https://github.com/AsamK/signal-cli
+# Install separately, then: export SIGNAL_NUMBER=+15551234567
+#                            export SIGNAL_CLI_PATH=/path/to/signal-cli
+
+# ── Optional: Matrix messaging ───────────────────────────────────────────────
+# No pip package needed — uses stdlib urllib
+# export MATRIX_HOMESERVER=https://matrix.org
+# export MATRIX_USER=@you:matrix.org
+# export MATRIX_PASSWORD=your_password   (or MATRIX_ACCESS_TOKEN=...)
+
+# ── Optional: Mattermost messaging ───────────────────────────────────────────
+# No pip package needed — uses stdlib urllib
+# export MATTERMOST_URL=https://your-instance.mattermost.com
+# export MATTERMOST_TOKEN=your_personal_access_token
+
+# ── Optional: Microsoft Teams messaging ──────────────────────────────────────
+# No pip package needed for webhook sending
+# export TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/...
+# Reading messages (Graph API): export TEAMS_TENANT_ID=... TEAMS_CLIENT_ID=... TEAMS_CLIENT_SECRET=...
+
+# ── Optional: Modal cloud execution ──────────────────────────────────────────
+# modal>=0.62.0               # pip install modal && modal setup (one-time auth)
+
+# ── Optional: Daytona cloud workspaces ───────────────────────────────────────
+# No pip package needed — uses stdlib urllib
+# export DAYTONA_API_KEY=dtn_xxxxxxxxxx
+# export DAYTONA_SERVER_URL=https://app.daytona.io

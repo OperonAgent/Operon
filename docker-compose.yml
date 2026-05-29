@@ -1,0 +1,52 @@
+version: "3.9"
+
+# ── Operon AI Terminal Cockpit — Docker Compose ───────────────────────────────
+#
+# Usage:
+#   docker compose up -d        # start in background
+#   docker compose logs -f      # stream logs
+#   docker compose exec operon python main.py   # attach an interactive session
+#   docker compose down         # stop and remove containers
+
+services:
+  operon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        INSTALL_PLAYWRIGHT: "0"    # set "1" to enable browser automation
+    image: operon:latest
+    container_name: operon
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+    ports:
+      - "7270:7270"    # Web dashboard
+
+    volumes:
+      - operon_data:/root/.operon   # persistent config, memory, sessions, skills
+
+    environment:
+      # ── API Keys ─────────────────────────────────────────────────────────────
+      # Uncomment and set the keys you need, or use a .env file:
+      #   cp .env.example .env  →  docker compose --env-file .env up
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+
+      # ── Messaging ─────────────────────────────────────────────────────────────
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+
+      # ── Local model servers (if running on the host) ──────────────────────────
+      # Use host.docker.internal to reach services on the Docker host
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - LMSTUDIO_BASE_URL=${LMSTUDIO_BASE_URL:-http://host.docker.internal:1234}
+
+    # Allow reaching host services (e.g., Ollama)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  operon_data:
+    driver: local

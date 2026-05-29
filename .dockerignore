@@ -1,0 +1,62 @@
+# ── Operon .dockerignore ──────────────────────────────────────────────────────
+# Keeps the Docker build context lean — only ship what the runtime needs.
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python cache
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache
+*.egg-info
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv
+venv/
+env/
+.env
+
+# IDE / editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Test files (not needed at runtime)
+test_all.py
+tests/
+
+# Local user data (never ship ~/.operon into the image)
+.operon/
+
+# Comparison / analysis scripts
+agent_comparison.py
+
+# Docs (optional — include if you want them in the image)
+*.md
+!README.md
+
+# Competitor source trees (never ship these)
+hermes-agent-main/
+openclaw-main/
+
+# CI/CD
+.github/
+.circleci/
+Makefile
+
+# Secrets (should be passed as env vars, never baked in)
+.env
+.env.*
+*.pem
+*.key
+config.json

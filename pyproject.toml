@@ -1,0 +1,108 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ── Package metadata ───────────────────────────────────────────────────────────
+[project]
+name        = "operon"
+version     = "3.1.0"
+description = "Advanced AI Terminal Cockpit — multi-provider agentic REPL with 185+ tools"
+readme      = "README.md"
+requires-python = ">=3.9"
+license     = {text = "MIT"}
+keywords    = [
+    "ai", "terminal", "agent", "llm", "cli", "ollama", "openai",
+    "anthropic", "mcp", "browser-automation", "computer-use",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Terminals",
+]
+
+# Core runtime deps — always required
+dependencies = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "duckduckgo_search>=6.0.0",
+]
+
+# Project URLs — replace OWNER with your GitHub org/username
+[project.urls]
+Homepage   = "https://github.com/OWNER/operon"
+Repository = "https://github.com/OWNER/operon"
+Issues     = "https://github.com/OWNER/operon/issues"
+Changelog  = "https://github.com/OWNER/operon/blob/main/CHANGELOG.md"
+
+# ── Optional feature groups ────────────────────────────────────────────────────
+[project.optional-dependencies]
+
+# pip install "operon[full]"  →  every optional feature
+full = [
+    "psutil>=5.9.8",
+    "pypdf>=4.0.0",
+    "reportlab>=4.0.0",
+    "playwright>=1.40.0",
+    "paramiko>=3.4.0",
+    "mss>=9.0.0",
+    "pynput>=1.7.6",
+    "mcp>=1.0.0",
+    "sounddevice>=0.4.6",
+    "openai-whisper>=20231117",
+    "pyttsx3>=2.90",
+    "psycopg2-binary>=2.9.9",
+    "pymongo>=4.6.1",
+    "twilio>=8.0.0",
+    "keyring>=24.0.0",
+    "cryptography>=41.0.0",
+    "docker>=7.0.0",
+]
+
+# Individual feature groups
+telemetry  = ["psutil>=5.9.8"]
+pdf        = ["pypdf>=4.0.0", "reportlab>=4.0.0"]
+browser    = ["playwright>=1.40.0"]
+ssh        = ["paramiko>=3.4.0"]
+computer   = ["mss>=9.0.0", "pynput>=1.7.6"]   # screen capture + mouse/keyboard
+mcp_server = ["mcp>=1.0.0"]                     # expose Operon as MCP server
+voice      = ["sounddevice>=0.4.6", "openai-whisper>=20231117", "pyttsx3>=2.90"]
+database   = ["psycopg2-binary>=2.9.9", "pymongo>=4.6.1"]
+messaging  = ["twilio>=8.0.0"]                  # WhatsApp via Twilio
+secrets    = ["keyring>=24.0.0", "cryptography>=41.0.0"]
+docker_sdk = ["docker>=7.0.0"]
+
+# ── THE MAGIC LINE ─────────────────────────────────────────────────────────────
+# After `pip install -e .`  the user can type just:  operon
+# After `pip install -e .`  to start MCP server:     python -m core.mcp_server
+[project.scripts]
+operon = "main:main"
+
+# ── Tell setuptools where to find packages and the top-level main module ───────
+[tool.setuptools]
+py-modules = ["main"]               # main.py lives at the project root
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["core*", "tools*", "ui*"]
+
+# ── Pytest configuration ───────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["test_all.py", "test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+# ── Ruff linter ───────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = ["E", "F", "W", "I"]
+ignore = ["E501", "F401"]   # long lines OK, unused imports handled at module level

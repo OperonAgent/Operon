@@ -1,0 +1,169 @@
+name: Operon Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 3.1.0)'
+        required: true
+        default: '3.1.0'
+
+jobs:
+  build-macos:
+    name: macOS .app Bundle (arm64)
+    runs-on: macos-14   # Apple Silicon
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build .app bundle
+        run: |
+          pyinstaller operon.spec --noconfirm --clean
+        env:
+          OPERON_NO_GIT: "1"
+
+      - name: Verify binary
+        run: |
+          ls -lh dist/Operon.app/Contents/MacOS/operon
+          file dist/Operon.app/Contents/MacOS/operon
+
+      - name: Create DMG (if dmgbuild available)
+        run: |
+          pip install dmgbuild || true
+          python build_dmg.py || echo "DMG skipped (dmgbuild not available)"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: operon-macos-arm64
+          path: |
+            dist/Operon.app
+            dist/Operon-*.dmg
+          if-no-files-found: warn
+
+  build-windows:
+    name: Windows .exe (x64)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build .exe
+        run: pyinstaller operon.spec --noconfirm --clean
+        env:
+          OPERON_NO_GIT: "1"
+
+      - name: Verify binary
+        run: |
+          dir dist\operon.exe
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: operon-windows-x64
+          path: dist/operon.exe
+
+  build-linux:
+    name: Linux binary (x64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build Linux binary
+        run: pyinstaller operon.spec --noconfirm --clean
+        env:
+          OPERON_NO_GIT: "1"
+
+      - name: Verify binary
+        run: |
+          ls -lh dist/operon
+          file dist/operon
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: operon-linux-x64
+          path: dist/operon
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-macos, build-windows, build-linux]
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: List artifacts
+        run: find release-artifacts -type f | sort
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/**/*
+          generate_release_notes: true
+          body: |
+            ## Operon ${{ github.ref_name }}
+
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | macOS arm64 (.app) | operon-macos-arm64.zip |
+            | Windows x64 (.exe) | operon-windows-x64/operon.exe |
+            | Linux x64          | operon-linux-x64/operon |
+
+            ### Installation
+            - **macOS**: Download and extract, drag `Operon.app` to `/Applications`
+            - **Windows**: Download `operon.exe` and run directly
+            - **Linux**: `chmod +x operon && ./operon`
+            - **pip**: `pip install operon`
+
+            ### What's new
+            See [CHANGELOG](CHANGELOG.md) for full details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
