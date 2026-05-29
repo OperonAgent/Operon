@@ -301,6 +301,29 @@ def check_command_risk_module() -> CheckResult:
         return CheckResult(name, CheckStatus.FAIL, str(e))
 
 
+def check_dependency_vulnerabilities() -> CheckResult:
+    """Supply-chain audit: scan installed packages against OSV.dev (offline fallback)."""
+    name = "Dependency vulnerabilities"
+    try:
+        from core.dep_audit import audit_environment
+        # Default to offline to keep /doctor fast and network-free; the offline
+        # advisory list still catches high-signal known-bad versions.
+        offline = os.environ.get("OPERON_DEP_AUDIT_ONLINE") != "1"
+        report = audit_environment(offline=offline)
+        if report.clean:
+            return CheckResult(name, CheckStatus.PASS,
+                               f"{report.scanned} packages scanned ({report.source}) — no known issues")
+        top = report.vulnerabilities[0]
+        return CheckResult(
+            name, CheckStatus.WARN,
+            f"{report.vulnerable_count} vulnerable: e.g. {top.package} {top.version} "
+            f"[{top.vuln_id}]" + (f" → {top.fixed_in}" if top.fixed_in else "")
+            + "  (run: python -m core.dep_audit --offline)",
+        )
+    except Exception as e:
+        return CheckResult(name, CheckStatus.SKIP, str(e))
+
+
 # ── Doctor runner ─────────────────────────────────────────────────────────────
 
 _ALL_CHECKS: list[Callable[[], CheckResult]] = [
@@ -315,6 +338,7 @@ _ALL_CHECKS: list[Callable[[], CheckResult]] = [
     check_disk_space,
     check_prompt_injection_module,
     check_command_risk_module,
+    check_dependency_vulnerabilities,
 ]
 
 

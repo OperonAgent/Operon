@@ -704,13 +704,13 @@ def _run_doctor(config: ConfigManager, memory: MemoryPipeline,
         from core.doctor import (
             check_security_email_send, check_security_weak_secrets,
             check_prompt_injection_module, check_command_risk_module,
-            check_disk_space,
+            check_disk_space, check_dependency_vulnerabilities,
         )
         lines.append("---")
         lines.append("  SECURITY CHECKS:")
         for fn in (check_security_email_send, check_security_weak_secrets,
                    check_prompt_injection_module, check_command_risk_module,
-                   check_disk_space):
+                   check_dependency_vulnerabilities, check_disk_space):
             r = fn()
             icon = {"pass": "✓", "warn": "⚠", "fail": "✗", "skip": "○"}[r.status.value]
             lines.append(f"    {icon} {r.name:<35} {r.message}")
