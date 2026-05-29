@@ -772,6 +772,25 @@ def handle_command(
     cmd   = parts[0].lower()
     args  = parts[1:]          # convenience: sub-command arguments list
 
+    # ── Modular dispatch (cmd_handlers package) ────────────────────────────────
+    # Extracted, individually-tested handlers run first; anything not yet
+    # migrated falls through to the legacy elif-chain below unchanged.
+    try:
+        from cmd_handlers import CommandContext, dispatch as _modular_dispatch
+        _ctx = CommandContext(
+            command=command, parts=parts, cmd=cmd, args=args,
+            config=config, session=session, memory=memory, theme=theme,
+            soul=soul, scheduler=scheduler, tool_registry=tool_registry,
+            router=router, context_inject=context_inject, planner=planner,
+            skills=skills, curator=curator, cost_tracker=cost_tracker,
+            semantic_mem=semantic_mem, knowledge=knowledge,
+        )
+        if _modular_dispatch(_ctx):
+            return
+    except Exception:
+        # Never let the modular layer break command handling — fall through.
+        pass
+
     # ── Exit ──────────────────────────────────────────────────────────────────
     if cmd in ("/exit", "/quit", "/q"):
         if _gateway and _gateway.status()["running"]:
@@ -927,15 +946,7 @@ def handle_command(
 
     # ── Session control ───────────────────────────────────────────────────────
 
-    elif cmd == "/clear":
-        session.clear()
-        print(theme.success("Session history cleared."))
-
-    elif cmd == "/undo":
-        if session.undo():
-            print(theme.success(f"Last exchange removed. ({len(session)} messages remain)"))
-        else:
-            print(theme.warning("Nothing to undo."))
+    # /clear and /undo are handled by cmd_handlers/session_cmds.py
 
     elif cmd == "/retry":
         if router is None or tool_registry is None or planner is None:
@@ -953,18 +964,7 @@ def handle_command(
                        skills=skills, curator=curator or _curator, knowledge=knowledge,
                        cost_tracker=cost_tracker, semantic_mem=semantic_mem)
 
-    elif cmd == "/history":
-        n     = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 20
-        lines = session.get_history_display(last_n=n)
-        print(theme.box(["  SESSION HISTORY", "---"] + lines) if lines
-              else theme.info("No history yet."))
-
-    elif cmd == "/compress":
-        removed = session.compress(keep_first=4, keep_recent=30)
-        if removed:
-            print(theme.success(f"Context compressed — {removed} messages removed. {len(session)} remain."))
-        else:
-            print(theme.info("Context is already compact."))
+    # /history and /compress are handled by cmd_handlers/session_cmds.py
 
     elif cmd == "/title":
         title = " ".join(parts[1:]).strip()
@@ -1043,43 +1043,7 @@ def handle_command(
     elif cmd == "/export":
         print(theme.success(f"Exported: {session.export()}"))
 
-    elif cmd == "/tools":
-        from tools.registry import _TOOL_DEFINITIONS
-        lines = [f"  AVAILABLE TOOLS  ({len(tool_registry.tools)})", "---"]
-        for td in _TOOL_DEFINITIONS:
-            desc = td.get("description", "")
-            # Truncate description to ~55 chars for clean display
-            short = desc[:55] + "…" if len(desc) > 55 else desc
-            lines.append(f"  {td['name']:<28} {short}")
-        # Any dynamically injected tools (MCP etc.) not in _TOOL_DEFINITIONS
-        defined = {td["name"] for td in _TOOL_DEFINITIONS}
-        for name in sorted(tool_registry.tools):
-            if name not in defined:
-                lines.append(f"  {name:<28} (dynamic)")
-        print(theme.box(lines))
-
-    elif cmd == "/usage":
-        try:
-            s = session.get_usage_stats()
-            print(theme.box([
-                "  USAGE STATS", "---",
-                f"  Turns              {s.get('turns', 0)}",
-                f"  Messages           {s.get('messages', 0)}",
-                f"  Characters         {int(s.get('chars', 0)):,}",
-                f"  Est. tokens        {int(s.get('est_tokens', 0)):,}",
-                f"  Est. cost (gpt-4o) ${float(s.get('est_cost_4o', 0.0)):.4f}",
-                "---",
-                "  Use /compress to trim context and reduce cost.",
-            ]))
-        except Exception as _e:
-            print(theme.error(f"  Could not retrieve usage stats: {_e}"))
-
-    elif cmd == "/cost":
-        # Live token + cost report for this session
-        if cost_tracker is None or not cost_tracker._calls:
-            print(theme.info("  No API calls recorded yet this session."))
-        else:
-            print(theme.box(cost_tracker.session_report()))
+    # /tools, /usage, /cost are handled by cmd_handlers/info.py
 
     elif cmd == "/memory":
         # Semantic long-term memory commands
