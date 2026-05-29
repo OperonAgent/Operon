@@ -1,0 +1,9 @@
+{
+  "name": "hashing",
+  "version": "1.0.0",
+  "description": "Compute MD5/SHA-1/SHA-256 digests of text.",
+  "author": "Operon Examples",
+  "tools": ["hash_text"],
+  "requires": [],
+  "operon_min_version": "3.1.0"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "codec",
+  "version": "1.0.0",
+  "description": "Encode/decode Base64 and URL-encode/decode text.",
+  "author": "Operon Examples",
+  "tools": ["base64_encode", "base64_decode", "url_encode", "url_decode"],
+  "requires": [],
+  "operon_min_version": "3.1.0"
+}

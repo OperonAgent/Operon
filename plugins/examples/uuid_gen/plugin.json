@@ -1,0 +1,9 @@
+{
+  "name": "uuid_gen",
+  "version": "1.0.0",
+  "description": "Generate UUIDs (v4) and URL-safe random tokens.",
+  "author": "Operon Examples",
+  "tools": ["uuid_generate", "random_token"],
+  "requires": [],
+  "operon_min_version": "3.1.0"
+}

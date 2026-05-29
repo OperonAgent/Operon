@@ -1,0 +1,9 @@
+{
+  "name": "text_stats",
+  "version": "1.0.0",
+  "description": "Word/character/line counts and reading-time estimate for any text.",
+  "author": "Operon Examples",
+  "tools": ["text_stats"],
+  "requires": [],
+  "operon_min_version": "3.1.0"
+}
