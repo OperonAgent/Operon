@@ -688,6 +688,142 @@ class PatchApplier:
 
 
 # ---------------------------------------------------------------------------
+# Static analysis (LSP-style) — runs before/after a fix to catch errors fast
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Diagnostic:
+    file:     str
+    line:     int
+    col:      int
+    code:     str
+    message:  str
+    severity: str = "error"   # "error" | "warning"
+
+    def as_line(self) -> str:
+        return f"{self.file}:{self.line}:{self.col} {self.severity} [{self.code}] {self.message}"
+
+
+@dataclass
+class AnalysisResult:
+    tool:        str
+    diagnostics: List["Diagnostic"] = field(default_factory=list)
+    ran:         bool = False
+    raw:         str = ""
+
+    @property
+    def error_count(self) -> int:
+        return sum(1 for d in self.diagnostics if d.severity == "error")
+
+    @property
+    def clean(self) -> bool:
+        return self.ran and not self.diagnostics
+
+    def summary(self) -> str:
+        if not self.ran:
+            return f"{self.tool}: not available (skipped)"
+        if not self.diagnostics:
+            return f"{self.tool}: clean ✓"
+        errs = self.error_count
+        warns = len(self.diagnostics) - errs
+        return f"{self.tool}: {errs} error(s), {warns} warning(s)"
+
+
+class StaticAnalyzer:
+    """
+    Lightweight LSP-style static analysis for the SWE loop.
+
+    Prefers `ruff` (fast, JSON output), falls back to `pyflakes`, then to
+    Python's own `compile()` for a syntax-only check. Always degrades
+    gracefully — a missing linter yields a skipped (not failed) result.
+    """
+
+    def __init__(self, repo_path: Path) -> None:
+        self.repo = Path(repo_path)
+
+    def _have(self, *cmd: str) -> bool:
+        try:
+            subprocess.run(list(cmd) + ["--version"], capture_output=True,
+                           timeout=5, cwd=str(self.repo))
+            return True
+        except Exception:
+            return False
+
+    def analyze(self, files: Optional[List[str]] = None) -> AnalysisResult:
+        """Analyze the given Python files (or the whole repo)."""
+        py_files = [f for f in (files or []) if f.endswith(".py")]
+        if self._have("ruff"):
+            return self._run_ruff(py_files)
+        if self._have("python", "-m", "pyflakes"):
+            return self._run_pyflakes(py_files)
+        return self._run_syntax_check(py_files)
+
+    def _run_ruff(self, files: List[str]) -> AnalysisResult:
+        target = files or ["."]
+        try:
+            proc = subprocess.run(
+                ["ruff", "check", "--output-format", "json", *target],
+                cwd=str(self.repo), capture_output=True, text=True, timeout=60,
+            )
+            res = AnalysisResult(tool="ruff", ran=True, raw=proc.stdout)
+            try:
+                for item in json.loads(proc.stdout or "[]"):
+                    res.diagnostics.append(Diagnostic(
+                        file=item.get("filename", "?"),
+                        line=(item.get("location") or {}).get("row", 0),
+                        col=(item.get("location") or {}).get("column", 0),
+                        code=item.get("code") or "RUFF",
+                        message=item.get("message", ""),
+                        severity="error",
+                    ))
+            except Exception:
+                pass
+            return res
+        except Exception as e:
+            return AnalysisResult(tool="ruff", ran=False, raw=str(e))
+
+    def _run_pyflakes(self, files: List[str]) -> AnalysisResult:
+        target = files or [str(self.repo)]
+        try:
+            proc = subprocess.run(
+                ["python", "-m", "pyflakes", *target],
+                cwd=str(self.repo), capture_output=True, text=True, timeout=60,
+            )
+            res = AnalysisResult(tool="pyflakes", ran=True, raw=proc.stdout + proc.stderr)
+            for line in (proc.stdout + proc.stderr).splitlines():
+                # format: path:line:col message
+                parts = line.split(":", 3)
+                if len(parts) >= 4:
+                    try:
+                        res.diagnostics.append(Diagnostic(
+                            file=parts[0], line=int(parts[1]),
+                            col=int(parts[2]), code="F",
+                            message=parts[3].strip(), severity="error"))
+                    except ValueError:
+                        continue
+            return res
+        except Exception as e:
+            return AnalysisResult(tool="pyflakes", ran=False, raw=str(e))
+
+    def _run_syntax_check(self, files: List[str]) -> AnalysisResult:
+        """Last-resort: compile each file to catch syntax errors only."""
+        res = AnalysisResult(tool="py_compile", ran=True)
+        for f in files:
+            path = (self.repo / f) if not Path(f).is_absolute() else Path(f)
+            if not path.exists():
+                continue
+            try:
+                compile(path.read_text(encoding="utf-8", errors="replace"), str(path), "exec")
+            except SyntaxError as e:
+                res.diagnostics.append(Diagnostic(
+                    file=str(f), line=e.lineno or 0, col=e.offset or 0,
+                    code="E999", message=f"SyntaxError: {e.msg}", severity="error"))
+            except Exception:
+                continue
+        return res
+
+
+# ---------------------------------------------------------------------------
 # Test runner
 # ---------------------------------------------------------------------------
 

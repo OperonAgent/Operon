@@ -41,6 +41,9 @@ from tools.image_gen import (
     image_generate as dalle_generate,
     image_edit, image_variation, image_list_generated, image_describe,
 )
+from tools.video_gen import (
+    video_generate, video_from_image, video_list_generated,
+)
 from tools.data_analysis import (
     data_load, data_save, data_convert, data_describe as data_describe_stats,
     data_query, data_groupby, data_clean, data_merge, data_pivot,
@@ -612,6 +615,38 @@ _TOOL_DEFINITIONS = [
             "size":      "string — '1024x1024' | '1792x1024' | '1024x1792', default '1024x1024' (optional)",
             "quality":   "string — 'standard' | 'hd', default 'standard' (optional)",
             "save_path": "string — output file path (optional, defaults to ~/Desktop/operon_img_<ts>.png)",
+        },
+    },
+    {
+        "name": "video_generate",
+        "description": (
+            "Generate a short video from a text prompt (text-to-video). Uses Replicate "
+            "or Luma depending on which API key is set. Returns a video URL + local path."
+        ),
+        "params": {
+            "prompt":   "string — description of the video (required)",
+            "provider": "string — 'auto' | 'replicate' | 'luma', default 'auto' (optional)",
+            "duration": "int — target length in seconds, default 4 (optional)",
+            "fps":      "int — frames per second hint, default 24 (optional)",
+        },
+    },
+    {
+        "name": "video_from_image",
+        "description": (
+            "Animate a still image into a short video (image-to-video). Needs LUMA_API_KEY "
+            "or REPLICATE_API_TOKEN."
+        ),
+        "params": {
+            "image_url": "string — public URL of the source image (required)",
+            "prompt":    "string — optional motion/scene guidance (optional)",
+            "provider":  "string — 'auto' | 'luma' | 'replicate', default 'auto' (optional)",
+        },
+    },
+    {
+        "name": "video_list_generated",
+        "description": "List previously generated videos saved under ~/.operon/generated/video.",
+        "params": {
+            "limit": "int — max results, default 20 (optional)",
         },
     },
     {
@@ -1917,6 +1952,9 @@ _DISPATCH: dict[str, Callable] = {
     # Vision / media
     "vision_analyze":    vision_analyze,
     "image_generate":    image_generate,
+    "video_generate":      video_generate,
+    "video_from_image":    video_from_image,
+    "video_list_generated": video_list_generated,
     "tts_speak":         tts_speak,
     # Messaging
     "telegram_send":     telegram_send,
@@ -2119,7 +2157,8 @@ TOOLSETS: dict[str, list[str]] = {
                     "browser_close"],
     "computer":    ["computer_use"],
     "delegation":  ["delegate_task", "delegate_batch"],
-    "vision":      ["vision_analyze", "image_generate", "tts_speak"],
+    "vision":      ["vision_analyze", "image_generate", "tts_speak",
+                    "video_generate", "video_from_image", "video_list_generated"],
     "messaging":   ["telegram_send", "discord_send", "discord_get_messages",
                     "discord_create_webhook", "slack_send", "slack_get_messages",
                     "slack_list_channels", "slack_upload_file",

@@ -914,6 +914,51 @@ class VoicePipeline:
         """Synthesise and optionally play text. Returns WAV bytes."""
         return self.speaker.speak(text, play=play)
 
+    def stream_listen(
+        self,
+        on_partial: Optional[Callable[[str], None]] = None,
+        max_seconds: float = 30.0,
+        window_sec:  float = 3.0,
+    ) -> str:
+        """
+        Real-time streaming transcription: capture the microphone and emit
+        partial transcripts via *on_partial* as soon as each audio window is
+        ready, instead of waiting for the full recording.
+
+        Returns the final, complete transcript. Falls back to a single
+        listen()+transcribe when the recorder can't stream (no PyAudio).
+
+        This is the first-class streaming-STT entry point — wraps
+        StreamingTranscriber for incremental results.
+        """
+        st = StreamingTranscriber(self._cfg, window_sec=window_sec)
+        start = time.time()
+        streamed_any = False
+
+        def _feed(chunk: bytes) -> None:
+            nonlocal streamed_any
+            streamed_any = True
+            partial = st.push(chunk)
+            if partial and on_partial:
+                on_partial(partial)
+            if (time.time() - start) > max_seconds:
+                # Signal the recorder to stop by raising StopIteration-like flag.
+                self.recorder.stop()
+
+        try:
+            wav = self.recorder.record(on_chunk=_feed)
+        except Exception:
+            wav = b""
+
+        if streamed_any:
+            tail = st.flush()
+            if tail:
+                return tail
+        # Fallback path: nothing streamed (no PyAudio) → transcribe the whole clip.
+        if wav:
+            return self.transcriber.transcribe_bytes(wav, fmt="wav")
+        return st.flush()
+
     def converse(
         self,
         process_fn: Callable[[str], str],
