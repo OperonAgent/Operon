@@ -184,7 +184,15 @@ class TestCheckpointCommands:
         _run("/checkpoint help", cfg, session, memory, theme)
 
     def test_checkpoint_create(self, cfg, session, memory, theme):
-        _run("/checkpoint create test snapshot", cfg, session, memory, theme)
+        # Mock the checkpoint manager so the test never makes a REAL git commit
+        # in the working repo (that would pollute history and can fail in CI
+        # where git identity may be unset).
+        with patch("core.checkpoint_manager.get_manager") as mock_get:
+            mgr = MagicMock()
+            mgr.checkpoint.return_value = MagicMock(
+                short_sha=lambda: "abc1234", branch="main", message="test snapshot")
+            mock_get.return_value = mgr
+            _run("/checkpoint create test snapshot", cfg, session, memory, theme)
 
 
 # ── Vector / Obsidian / Synth / Desktop ──────────────────────────────────────
