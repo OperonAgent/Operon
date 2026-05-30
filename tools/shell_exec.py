@@ -10,10 +10,38 @@ Executes bash/shell commands via subprocess with:
 """
 
 import os
+import signal
 import subprocess
 import sys
 import time
 from typing import Optional
+
+
+def _kill_process_group(proc) -> None:
+    """
+    Terminate the subprocess AND all its children.
+
+    With shell=True the shell spawns children (e.g. `sleep`) that survive a
+    plain proc.kill() on POSIX — they keep the stdout pipe open, so readline()
+    blocks until they exit (the timeout never actually frees the process). We
+    launch the process in its own session (start_new_session) and kill the whole
+    process group here so timeouts genuinely terminate runaway commands.
+    """
+    if proc.poll() is not None:
+        return
+    try:
+        if os.name == "nt":
+            proc.kill()
+        else:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                proc.kill()
+    except Exception:
+        try:
+            proc.kill()
+        except Exception:
+            pass
 
 from core.command_risk import analyse_command, RiskLevel
 
@@ -96,6 +124,10 @@ def shell_exec(
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            # Put the shell + its children in a new process group/session so a
+            # timeout can kill the WHOLE tree (otherwise `sleep 10` survives on
+            # Linux and blocks readline for its full duration).
+            start_new_session=(os.name != "nt"),
         )
 
         stdout_chunks: list[bytes] = []
@@ -111,7 +143,7 @@ def shell_exec(
         # that produce no output (e.g. `sleep 10`), unlike the per-line check.
         def _watchdog():
             if proc.poll() is None:
-                proc.kill()
+                _kill_process_group(proc)
 
         watchdog = _threading.Timer(timeout, _watchdog)
         watchdog.daemon = True
@@ -136,7 +168,7 @@ def shell_exec(
             else:
                 truncated = True
             if time.time() > deadline:
-                proc.kill()
+                _kill_process_group(proc)
                 truncated = True
                 break
 
