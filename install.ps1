@@ -3,7 +3,7 @@
     Operon one-command installer for Windows.
 
 .DESCRIPTION
-    git clone https://github.com/OWNER/operon.git
+    git clone https://github.com/OperonAgent/Operon.git
     cd operon
     powershell -ExecutionPolicy Bypass -File install.ps1
 

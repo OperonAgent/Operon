@@ -4,7 +4,7 @@ install.py — Operon one-shot installer.
 
 The single command a fresh GitHub cloner runs:
 
-    git clone https://github.com/OWNER/operon.git
+    git clone https://github.com/OperonAgent/Operon.git
     cd operon
     python install.py          # installs EVERYTHING, including the browser binary
 

@@ -49,4 +49,4 @@ loop, multi-agent delegation, and a self-improvement skill synthesizer.
 - Messaging channels (Discord/Telegram/Slack) are functional but not yet at
   production depth.
 
-[3.1.0]: https://github.com/OWNER/operon/releases/tag/v3.1.0
+[3.1.0]: https://github.com/OperonAgent/Operon/releases/tag/v3.1.0

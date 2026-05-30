@@ -749,7 +749,7 @@ def build_installation():
         "<code>pip install</code> skips). It creates a <code>.venv</code>, installs "
         "Operon, and registers the <code>operon</code> command.", "body"))
     elems += code_block([
-        "git clone https://github.com/OWNER/operon.git",
+        "git clone https://github.com/OperonAgent/Operon.git",
         "cd operon",
         "",
         "# macOS / Linux:",
@@ -2431,7 +2431,7 @@ def build_back_cover():
     elems.append(HR(PURPLE_BASE, 0.8))
     elems.append(SP(3))
     elems.append(P(
-        'github.com/OWNER/operon  •  '
+        'github.com/OperonAgent/Operon  •  '
         'Run with: <font color="#22D3EE">python main.py</font>',
         "cover_tagline"))
     return elems

@@ -37,10 +37,10 @@ dependencies = [
 
 # Project URLs — replace OWNER with your GitHub org/username
 [project.urls]
-Homepage   = "https://github.com/OWNER/operon"
-Repository = "https://github.com/OWNER/operon"
-Issues     = "https://github.com/OWNER/operon/issues"
-Changelog  = "https://github.com/OWNER/operon/blob/main/CHANGELOG.md"
+Homepage   = "https://github.com/OperonAgent/Operon"
+Repository = "https://github.com/OperonAgent/Operon"
+Issues     = "https://github.com/OperonAgent/Operon/issues"
+Changelog  = "https://github.com/OperonAgent/Operon/blob/main/CHANGELOG.md"
 
 # ── Optional feature groups ────────────────────────────────────────────────────
 [project.optional-dependencies]

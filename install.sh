@@ -2,7 +2,7 @@
 #
 # install.sh — Operon one-command installer for macOS / Linux.
 #
-#   git clone https://github.com/OWNER/operon.git
+#   git clone https://github.com/OperonAgent/Operon.git
 #   cd operon
 #   ./install.sh
 #

@@ -15,16 +15,16 @@ Playwright Chromium browser binary (the ~120 MB download that `pip install` skip
 ### macOS / Linux
 
 ```bash
-git clone https://github.com/OWNER/operon.git
-cd operon
+git clone https://github.com/OperonAgent/Operon.git
+cd Operon
 ./install.sh
 ```
 
 ### Windows
 
 ```powershell
-git clone https://github.com/OWNER/operon.git
-cd operon
+git clone https://github.com/OperonAgent/Operon.git
+cd Operon
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 

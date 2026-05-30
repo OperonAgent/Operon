@@ -239,13 +239,13 @@ def build():
 
     e.append(P("macOS / Linux", "h2"))
     e += code_block([
-        "git clone https://github.com/OWNER/operon.git",
+        "git clone https://github.com/OperonAgent/Operon.git",
         "cd operon",
         "./install.sh",
     ])
     e.append(P("Windows (PowerShell)", "h2"))
     e += code_block([
-        "git clone https://github.com/OWNER/operon.git",
+        "git clone https://github.com/OperonAgent/Operon.git",
         "cd operon",
         "powershell -ExecutionPolicy Bypass -File install.ps1",
     ])

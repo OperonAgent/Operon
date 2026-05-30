@@ -6,8 +6,8 @@ contributions, bug reports, and feedback are very welcome.
 ## Getting set up
 
 ```bash
-git clone https://github.com/OWNER/operon.git
-cd operon
+git clone https://github.com/OperonAgent/Operon.git
+cd Operon
 python install.py            # installs deps + browser binary into .venv
 source .venv/bin/activate    # (Windows: .venv\Scripts\activate)
 make test                    # run the test suite
