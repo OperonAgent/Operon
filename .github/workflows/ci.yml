@@ -29,10 +29,20 @@ jobs:
       OPERON_SKIP_WIZARD: "1"
       OPERON_NO_GIT: "1"
       CI: "1"
+      # Defensive: force UTF-8 I/O at the Python level (safe on macOS + Linux;
+      # avoids system-locale assumptions like C.UTF-8 that don't exist on macOS).
+      PYTHONIOENCODING: "utf-8"
+      PYTHONUTF8: "1"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure git identity (some tests touch real git)
+        run: |
+          git config --global user.email "ci@operon.dev"
+          git config --global user.name "Operon CI"
+          git config --global init.defaultBranch main
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -69,7 +79,8 @@ jobs:
         # heavy optional deps (whisper/torch, lancedb) the runner doesn't have.
         # A per-test timeout kills anything that tries to block on a device.
         run: |
-          pytest tests/ -q -p no:cacheprovider \
+          set -o pipefail
+          pytest tests/ -q -rfE -p no:cacheprovider \
             --timeout=120 --timeout-method=thread \
             --ignore=tests/test_browser.py \
             --ignore=tests/test_browser_supervisor.py \
@@ -78,7 +89,20 @@ jobs:
             --ignore=tests/test_visual_grounding.py \
             --ignore=tests/test_vector_memory.py \
             --cov=core --cov=tools \
-            --cov-report=xml:coverage.xml
+            --cov-report=xml:coverage.xml \
+            2>&1 | tee /tmp/pytest_out.txt
+
+      - name: Surface failures in run summary
+        if: failure()
+        run: |
+          echo "### ❌ Failing tests on ${{ matrix.os }} / py${{ matrix.python-version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "^FAILED|^ERROR" /tmp/pytest_out.txt >> "$GITHUB_STEP_SUMMARY" || echo "(no FAILED/ERROR lines captured)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "#### Tracebacks (first 120 lines)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -A4 -E "Error|assert|Exception" /tmp/pytest_out.txt | head -120 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
