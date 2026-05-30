@@ -150,4 +150,4 @@ still downloads Chromium on first use.)*
 
 ## License
 
-MIT © 2026 Operon Project
+MIT © 2026 Kunwar Mann

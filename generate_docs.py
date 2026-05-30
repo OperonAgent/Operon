@@ -603,7 +603,7 @@ def build_cover():
         "cover_version"))
     elems.append(SP(1))
     elems.append(P(
-        'Phase 11 Build  •  185+ Tools  •  60+ Commands  •  1,896 Tests  •  © 2026 Operon Project',
+        'Phase 11 Build  •  185+ Tools  •  60+ Commands  •  1,896 Tests  •  © 2026 Kunwar Mann',
         "cover_version"))
 
     elems.append(PageBreak())
