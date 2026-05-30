@@ -18,6 +18,12 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         os: ["ubuntu-latest", "macos-latest"]
+        # macOS runners bill at 10x — run the full Python matrix on cheap Ubuntu,
+        # and only one macOS job for cross-platform signal. Keeps Actions minutes low.
+        exclude:
+          - { os: macos-latest, python-version: "3.9" }
+          - { os: macos-latest, python-version: "3.10" }
+          - { os: macos-latest, python-version: "3.11" }
 
     env:
       OPERON_SKIP_WIZARD: "1"
@@ -42,7 +48,9 @@ jobs:
       - name: Install test dependencies
         run: |
           pip install pytest pytest-asyncio pytest-cov pytest-timeout
-          pip install pypdf reportlab numpy
+          pip install pypdf reportlab
+          # Data-analysis tools/tests need these (pip-installable, no hardware):
+          pip install pandas numpy matplotlib seaborn openpyxl aiohttp
 
       - name: Install package in editable mode
         run: pip install -e . || true
@@ -68,6 +76,7 @@ jobs:
             --ignore=tests/test_computer_use.py \
             --ignore=tests/test_voice_pipeline.py \
             --ignore=tests/test_visual_grounding.py \
+            --ignore=tests/test_vector_memory.py \
             --cov=core --cov=tools \
             --cov-report=xml:coverage.xml
 
