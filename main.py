@@ -2939,9 +2939,22 @@ def handle_command(
     # ── MCP server (serve mode) ───────────────────────────────────────────────
 
     elif cmd == "/serve":
-        # Start Operon as an MCP server so Claude Code, Cursor, etc. can call its tools
-        sub  = parts[1].lower() if len(parts) > 1 else "stdio"
+        # Start Operon as an MCP server so Claude Code, Cursor, etc. can call its tools.
+        # Bare `/serve` shows usage — it must NOT auto-start a blocking server
+        # (that would hang the REPL, scripts, and CI with no feedback).
+        sub  = parts[1].lower() if len(parts) > 1 else "help"
         port = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 3456
+
+        if sub in ("help", "h", "?"):
+            print(theme.box([
+                "  /serve — expose Operon as an MCP server", "---",
+                "  /serve stdio          Start MCP server on stdio (blocks)",
+                "  /serve http [port]    Start HTTP MCP server (default 3456)",
+                "  /serve config         Print client config JSON for Claude Code/Cursor",
+                "---",
+                "  Add to Claude Code:   /serve config   then paste into the client.",
+            ]))
+            return
 
         if sub == "config":
             from core.mcp_server import generate_client_config
