@@ -33,6 +33,7 @@ doctor:
 docs:
 	$(PYTHON) generate_docs.py
 	$(PYTHON) generate_setup_guide.py
+	$(PYTHON) generate_comparison.py
 
 test:
 	$(PYTHON) -m pytest tests/ -q

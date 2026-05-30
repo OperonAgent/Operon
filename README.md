@@ -146,7 +146,8 @@ still downloads Chromium on first use.)*
 
 - **Setup Guide** — `Operon_Setup_Guide.pdf` (build: `python generate_setup_guide.py`)
 - **Full technical reference** — `Operon_Documentation.pdf` (build: `python generate_docs.py`)
-- Build both at once: `make docs`
+- **Competitive comparison** — `Operon_Comparison.pdf` (build: `python generate_comparison.py`)
+- Build all at once: `make docs`
 
 ## License
 

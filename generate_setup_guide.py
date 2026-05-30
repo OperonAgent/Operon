@@ -68,10 +68,10 @@ class SetupCanvas(pdf_canvas.Canvas):
         super().save()
 
     def _frame(self, n):
-        # full-page dark background
-        self.setFillColor(BLACK)
-        self.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
-        # footer
+        # NOTE: the full-page dark background is painted by SetupDoc.handle_pageBegin()
+        # BEFORE the flowable content, so it sits UNDER the text. Drawing it here (in
+        # save(), after content) would cover everything — that was the blank-page bug.
+        # footer (drawn on top, at the bottom margin — fine)
         self.setStrokeColor(HexColor("#2A1060"))
         self.setLineWidth(0.5)
         self.line(18 * mm, 14 * mm, PAGE_W - 18 * mm, 14 * mm)
@@ -91,6 +91,15 @@ class SetupDoc(SimpleDocTemplate):
             title="Operon — Setup Guide",
             author="Operon", subject="Installation & Setup Guide v3.1.0",
         )
+
+    def handle_pageBegin(self):
+        """Paint the dark page background BEFORE any flowables are laid down."""
+        super().handle_pageBegin()
+        c = self.canv
+        c.saveState()
+        c.setFillColor(BLACK)
+        c.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
+        c.restoreState()
 
 
 # ── Styles ────────────────────────────────────────────────────────────────────
