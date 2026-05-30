@@ -24,14 +24,19 @@ def _slow_tool(name: str, params: dict) -> dict:
 
 class TestConcurrency:
     def test_runs_in_parallel_not_serial(self):
-        calls = [ToolCall(tool_name="slow", params={"sleep": 0.3, "x": i},
-                          call_id=f"c{i}") for i in range(4)]
-        ex = ParallelToolExecutor(max_workers=4)
+        # Use a long per-task sleep so thread/scheduler overhead is negligible
+        # and the bound is robust on contended CI runners (the previous tight
+        # 0.8s bound on 4x0.3s was flaky on loaded 2-core Linux runners).
+        n, sleep_s = 4, 1.0
+        calls = [ToolCall(tool_name="slow", params={"sleep": sleep_s, "x": i},
+                          call_id=f"c{i}") for i in range(n)]
+        ex = ParallelToolExecutor(max_workers=n)
         t0 = time.perf_counter()
         result = ex.run(calls, execute_fn=_slow_tool, print_fn=lambda *_: None)
         wall = time.perf_counter() - t0
-        # Serial would be ~1.2s; parallel should be well under 0.8s.
-        assert wall < 0.8, f"not concurrent: {wall:.2f}s"
+        # Serial would be n*sleep_s = 4.0s. Concurrent should be ~1s; assert a
+        # very generous 2.5s ceiling — proves overlap while tolerating overhead.
+        assert wall < (n * sleep_s) * 0.6, f"not concurrent: {wall:.2f}s of {n*sleep_s}s serial"
         assert result.all_succeeded
         assert len(result.results) == 4
 

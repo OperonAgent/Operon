@@ -213,17 +213,28 @@ class TestParallelExecutorRun:
         assert pr.all_succeeded
 
     def test_parallel_is_faster_than_sequential(self):
-        """4 calls × 0.1s sleep should finish in < 0.4s when parallel."""
-        ex = make_executor(max_workers=4)
-        calls = [ToolCall(f"t{i}", {}, f"c{i}") for i in range(4)]
+        """4 calls run concurrently should finish well under the serial sum.
+
+        Uses a long per-call sleep so the bound is robust on contended CI
+        runners with coverage instrumentation (a tight sub-0.4s bound was
+        flaky on 2-core Linux runners while passing on fast macOS).
+        """
+        n, sleep_s = 4, 0.5
+        def _slow(tool_name, params):
+            time.sleep(sleep_s)
+            return {"success": True}
+        ex = make_executor(max_workers=n)
+        calls = [ToolCall(f"t{i}", {}, f"c{i}") for i in range(n)]
 
         start = time.perf_counter()
-        pr = ex.run(calls, slow_execute)
+        pr = ex.run(calls, _slow)
         elapsed = time.perf_counter() - start
 
-        # Sequential would take ~0.4s; parallel should be ~0.1s + overhead
-        assert elapsed < 0.4, f"Parallel execution took {elapsed:.3f}s — not fast enough"
-        assert len(pr.results) == 4
+        # Serial = n*sleep_s = 2.0s. Concurrent ≈ 0.5s; assert < 60% of serial
+        # — proves overlap while tolerating heavy runner/coverage overhead.
+        assert elapsed < (n * sleep_s) * 0.6, \
+            f"Parallel took {elapsed:.3f}s of {n*sleep_s}s serial — not concurrent"
+        assert len(pr.results) == n
 
     def test_failure_does_not_stop_others(self):
         """If one call fails, others still complete."""

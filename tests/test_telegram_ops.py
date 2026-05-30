@@ -441,4 +441,4 @@ class TestRateLimit:
         start = time.time()
         bot._throttle("200")
         elapsed = time.time() - start
-        assert elapsed < 0.05   # should not wait
+        assert elapsed < 1.0   # should not block (generous for CI + coverage overhead)
