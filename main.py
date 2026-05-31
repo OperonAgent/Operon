@@ -1974,57 +1974,7 @@ def handle_command(
 
     # ── Pipeline macros ───────────────────────────────────────────────────────
 
-    elif cmd == "/macro":
-        if _macros is None:
-            _macros = MacroManager(tool_registry=tool_registry or ToolRegistry())
-        sub = parts[1].lower() if len(parts) > 1 else "list"
-
-        if sub == "list":
-            macros = _macros.list_macros()
-            if not macros:
-                print(theme.info("No macros saved. Use /macro define to create one, or use the macro_save tool."))
-            else:
-                lines = ["  PIPELINE MACROS", "---"]
-                for m in macros:
-                    lines.append(f"  {m['name']:<20}  {len(m.get('steps', []))} steps  {m.get('description', '')[:50]}")
-                print(theme.box(lines))
-
-        elif sub == "run":
-            if len(parts) < 3:
-                print(theme.warning("Usage: /macro run <name> [key=value ...]"))
-                return
-            name = parts[2]
-            vars_dict = {}
-            for token in parts[3:]:
-                if "=" in token:
-                    k, v = token.split("=", 1)
-                    vars_dict[k] = v
-            result = _macros.run(name, vars=vars_dict if vars_dict else None)
-            if result.get("success"):
-                print(theme.success(f"Macro '{name}' completed in {len(result.get('steps', []))} steps."))
-                if result.get("output"):
-                    print(theme.info(str(result["output"])[:400]))
-            else:
-                print(theme.error(result.get("error", f"Macro '{name}' failed.")))
-
-        elif sub in ("define", "create"):
-            print(theme.info(
-                "To create a macro, use the macro_save tool in a prompt:\n"
-                '  Save a macro named "daily_report" with steps: ...'
-            ))
-
-        elif sub == "delete":
-            if len(parts) < 3:
-                print(theme.warning("Usage: /macro delete <name>"))
-                return
-            result = _macros.delete(parts[2])
-            if result.get("success"):
-                print(theme.success(f"Macro '{parts[2]}' deleted."))
-            else:
-                print(theme.error(result.get("error", "Not found.")))
-
-        else:
-            print(theme.warning("Usage: /macro list|run <name>|delete <name>"))
+    # /macro is handled by cmd_handlers/macro_cmds.py (modular dispatch).
 
     # ── Retry policies ────────────────────────────────────────────────────────
 

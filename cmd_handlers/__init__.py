@@ -79,3 +79,4 @@ def dispatch(ctx: "CommandContext") -> bool:
 from cmd_handlers import info as _info               # noqa: E402,F401
 from cmd_handlers import session_cmds as _sess        # noqa: E402,F401
 from cmd_handlers import config_cmds as _cfg          # noqa: E402,F401
+from cmd_handlers import macro_cmds as _macro         # noqa: E402,F401

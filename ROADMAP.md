@@ -14,14 +14,18 @@ large module.
 `CommandContext` + dispatch registry. `handle_command` now consults the modular
 dispatch first and falls back to the legacy elif-chain for anything not yet
 migrated. Read-only commands (`/clear`, `/undo`, `/history`, `/compress`,
-`/tools`, `/usage`, `/cost`) are extracted into `cmd_handlers/info.py` and
-`cmd_handlers/session_cmds.py`, covered by `tests/test_cmd_handlers.py`.
+`/tools`, `/usage`, `/cost`, `/models`, `/config`, `/soul`) are extracted into
+`cmd_handlers/info.py`, `cmd_handlers/session_cmds.py`, and
+`cmd_handlers/config_cmds.py`. The first *stateful* command, `/macro`, is now
+extracted into `cmd_handlers/macro_cmds.py` — it owns the lazy
+`main._macros` singleton through the live `main` module, proving the pattern
+for migrating global-state commands without a circular import. Covered by
+`tests/test_cmd_handlers.py` and `tests/test_macro_cmds.py`.
 
-**Remaining:** Migrate the global-state-mutating commands (`/gateway`,
-`/dashboard`, `/approve`, `/mcp`, `/webhook`, `/rag`, `/secrets`, `/heartbeat`,
-`/goal`, `/macro`, `/plugin`, `/curator`) — these reassign main.py module
-globals and need the context to carry mutable service handles. Then move the
-agent loop into its own module.
+**Remaining:** Migrate the rest of the global-state-mutating commands
+(`/gateway`, `/dashboard`, `/approve`, `/mcp`, `/webhook`, `/rag`, `/secrets`,
+`/heartbeat`, `/goal`, `/plugin`, `/curator`) using the same live-module
+pattern. Then move the agent loop into its own module.
 
 **Target:** v3.2.0
 
@@ -43,12 +47,24 @@ dedicated bots (no full thread/voice/embed parity).
 
 ## Post-beta direction (subject to feedback)
 
-- Background (non-blocking) context compression wired into the main loop.
-- Unified memory facade over FTS5 + vector + Obsidian backends.
-- Streaming real-time voice (OpenAI Realtime / Deepgram).
-- Plugin marketplace with seed community plugins.
-- LSP / static-analysis integration in the SWE agent.
-- Supply-chain dependency scanning in `/doctor`.
+Several of the originally post-beta items have already shipped in v3.1.x:
+
+- [x] Background (non-blocking) context compression wired into the main loop
+      (`main._background_compact` + `BackgroundCompressor`).
+- [x] Unified memory facade over FTS5 + vector + Obsidian backends
+      (`core/memory_facade.py`).
+- [x] Streaming real-time voice over Deepgram WebSocket
+      (`CloudStreamingTranscriber` in `core/voice_pipeline.py`).
+- [x] Plugin marketplace with seed community plugins (`plugins/examples/`).
+- [x] LSP / static-analysis integration in the SWE agent
+      (`StaticAnalyzer` in `core/swe_agent.py`).
+- [x] Supply-chain dependency scanning in `/doctor` (`core/dep_audit.py`).
+
+Still ahead:
+
+- Deepen Telegram + Discord to match the expanded Slack toolset (threads,
+  scheduled messages, pin/topic parity).
+- Move the agent loop out of `main.py` into its own module.
 
 ## How to influence the roadmap
 
