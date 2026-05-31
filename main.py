@@ -4950,7 +4950,34 @@ def main() -> None:
                     help="Report dependency status and exit")
     ap.add_argument("--skip-dep-check", action="store_true",
                     help="Skip the first-run browser-binary check")
+    ap.add_argument("--version", "-V", action="store_true",
+                    help="Print the Operon version (and check for updates) and exit")
+    ap.add_argument("--update", action="store_true",
+                    help="Update Operon to the latest version (git checkout) and exit")
     args, _unknown = ap.parse_known_args()
+
+    # ── Version / update CLI (no config needed) ───────────────────────────────
+    if args.version:
+        from core.version import __version__
+        print(f"Operon {__version__}")
+        try:
+            from core.updater import check_for_update
+            info = check_for_update(timeout=4.0)
+            if info["offline"]:
+                print("  (could not check for updates — offline)")
+            elif info["update_available"]:
+                print(f"  A newer version is available: {info['latest']}  "
+                      f"— run: operon --update")
+            else:
+                print("  You are on the latest version.")
+        except Exception:
+            pass
+        sys.exit(0)
+    if args.update:
+        from core.updater import self_update
+        result = self_update()
+        print(("  " + result["message"]) if result.get("message") else "")
+        sys.exit(0 if result.get("success") else 1)
 
     # ── Dependency provisioning CLI (no config needed) ────────────────────────
     if args.install_deps:

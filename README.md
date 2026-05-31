@@ -89,6 +89,17 @@ python -m core.bootstrap --browser  # just the Chromium binary
 python -m core.bootstrap --check    # status only
 ```
 
+## Updating
+
+```bash
+operon --version     # show version + check GitHub for a newer release
+operon --update      # pull the latest version (git checkout) + refresh deps
+```
+
+`--update` is safe: it does a fast-forward `git pull` and aborts if you have
+uncommitted local changes (so it never clobbers your edits). For ZIP/binary
+downloads, grab the newest release from the Releases page instead.
+
 ---
 
 ## Makefile shortcuts
