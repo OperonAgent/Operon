@@ -17,7 +17,7 @@ from core.voice_pipeline import (
     Transcriber, Speaker, AudioRecorder, VADDetector,
     WakeWordDetector, SpeakerDiariser, DiarisationSegment,
     MultimodalMessage, MultimodalRouter, VoicePipeline,
-    StreamingTranscriber,
+    StreamingTranscriber, CloudStreamingTranscriber,
     pcm_rms, resample_pcm, save_wav, load_wav,
     wav_bytes_to_array, get_voice_pipeline, listen, speak,
     transcribe_file, _SAMPLE_RATE, _SILENCE_THRESHOLD, _WAKE_WORDS,
@@ -515,3 +515,103 @@ class TestTTSBackend:
         assert TTSBackend.OPENAI.value == "openai"
         assert TTSBackend.ESPEAK.value == "espeak"
         assert TTSBackend.STUB.value == "stub"
+
+
+# ── Cloud (Deepgram) real-time streaming STT ─────────────────────────────────
+
+class TestCloudStreamingTranscriber:
+    def test_deepgram_backend_enum_exists(self):
+        assert STTBackend.DEEPGRAM.value == "deepgram"
+
+    def test_unavailable_without_key(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DEEPGRAM_API_KEY", None)
+            st = CloudStreamingTranscriber()
+            assert st.available() is False
+
+    def test_unavailable_without_websocket_dep(self):
+        st = CloudStreamingTranscriber(api_key="abc123")
+        with patch.object(CloudStreamingTranscriber, "_have_ws", return_value=False):
+            assert st.available() is False
+
+    def test_available_with_key_and_dep(self):
+        st = CloudStreamingTranscriber(api_key="abc123")
+        with patch.object(CloudStreamingTranscriber, "_have_ws", return_value=True):
+            assert st.available() is True
+
+    def test_start_returns_false_when_unavailable(self):
+        st = CloudStreamingTranscriber(api_key="")
+        assert st.start() is False
+
+    def test_push_noop_before_start(self):
+        st = CloudStreamingTranscriber(api_key="abc123")
+        # No active socket → must not raise.
+        st.push(b"\x00" * 100)
+
+    def test_finish_returns_empty_when_never_started(self):
+        st = CloudStreamingTranscriber(api_key="abc123")
+        assert st.finish(timeout=0.01) == ""
+
+    def test_finals_accumulate_and_join(self):
+        st = CloudStreamingTranscriber(api_key="abc123")
+        with st._lock:
+            st._finals.extend(["hello", "world"])
+        assert st.finish(timeout=0.01) == "hello world"
+
+    def test_start_opens_websocket_and_pushes(self):
+        finals, partials = [], []
+        st = CloudStreamingTranscriber(
+            api_key="abc123",
+            on_partial=partials.append,
+            on_final=finals.append,
+        )
+        fake_ws = MagicMock()
+        fake_app = MagicMock(return_value=fake_ws)
+        fake_module = MagicMock()
+        fake_module.WebSocketApp = fake_app
+        fake_module.ABNF.OPCODE_BINARY = 2
+        with patch.object(CloudStreamingTranscriber, "_have_ws", return_value=True), \
+             patch.dict("sys.modules", {"websocket": fake_module}), \
+             patch("core.voice_pipeline.time.sleep", return_value=None):
+            assert st.start() is True
+            # the message callback was wired up
+            kwargs = fake_app.call_args.kwargs
+            on_message = kwargs["on_message"]
+            # simulate a final + interim transcript arriving
+            import json
+            on_message(fake_ws, json.dumps({
+                "is_final": True,
+                "channel": {"alternatives": [{"transcript": "final text"}]}}))
+            on_message(fake_ws, json.dumps({
+                "is_final": False,
+                "channel": {"alternatives": [{"transcript": "partial text"}]}}))
+            st.push(b"\x01" * 320)
+            fake_ws.send.assert_called()
+        assert "final text" in finals
+        assert "partial text" in partials
+
+    def test_message_handler_ignores_empty_transcript(self):
+        st = CloudStreamingTranscriber(api_key="abc123")
+        fake_ws = MagicMock()
+        fake_app = MagicMock(return_value=fake_ws)
+        fake_module = MagicMock()
+        fake_module.WebSocketApp = fake_app
+        with patch.object(CloudStreamingTranscriber, "_have_ws", return_value=True), \
+             patch.dict("sys.modules", {"websocket": fake_module}), \
+             patch("core.voice_pipeline.time.sleep", return_value=None):
+            st.start()
+            on_message = fake_app.call_args.kwargs["on_message"]
+            import json
+            on_message(fake_ws, json.dumps({
+                "is_final": True,
+                "channel": {"alternatives": [{"transcript": "  "}]}}))
+        assert st.finish(timeout=0.01) == ""
+
+    def test_stream_listen_falls_back_when_cloud_unavailable(self):
+        cfg = VoiceConfig(stt_backend=STTBackend.STUB)
+        vp = VoicePipeline(cfg)
+        vp.recorder.record = MagicMock(return_value=b"")
+        vp.transcriber.transcribe_bytes = MagicMock(return_value="local result")
+        with patch.object(CloudStreamingTranscriber, "available", return_value=False):
+            out = vp.stream_listen(max_seconds=0.1)
+        assert isinstance(out, str)

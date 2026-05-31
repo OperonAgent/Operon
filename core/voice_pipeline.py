@@ -74,6 +74,7 @@ class STTBackend(str, Enum):
     WHISPER_LOCAL  = "whisper_local"   # openai-whisper Python package
     WHISPER_API    = "whisper_api"     # OpenAI Whisper API
     VOSK           = "vosk"            # vosk offline
+    DEEPGRAM       = "deepgram"        # real-time streaming WebSocket
     STUB           = "stub"            # returns placeholder text
 
 
@@ -928,9 +929,28 @@ class VoicePipeline:
         Returns the final, complete transcript. Falls back to a single
         listen()+transcribe when the recorder can't stream (no PyAudio).
 
-        This is the first-class streaming-STT entry point — wraps
-        StreamingTranscriber for incremental results.
+        This is the first-class streaming-STT entry point. Prefers true
+        real-time cloud streaming (Deepgram) when DEEPGRAM_API_KEY +
+        websocket-client are present; otherwise falls back to windowed local
+        transcription.
         """
+        # Preferred path: real-time cloud streaming (sub-second latency).
+        cloud = CloudStreamingTranscriber(self._cfg, on_partial=on_partial)
+        if cloud.available() and cloud.start():
+            start_c = time.time()
+
+            def _feed_cloud(chunk: bytes) -> None:
+                cloud.push(chunk)
+                if (time.time() - start_c) > max_seconds:
+                    self.recorder.stop()
+
+            try:
+                self.recorder.record(on_chunk=_feed_cloud)
+            except Exception:
+                pass
+            return cloud.finish()
+
+        # Fallback: windowed local streaming.
         st = StreamingTranscriber(self._cfg, window_sec=window_sec)
         start = time.time()
         streamed_any = False
@@ -1108,6 +1128,126 @@ class StreamingTranscriber:
         with self._lock:
             self._buffer = b""
             self._results.clear()
+
+
+# ---------------------------------------------------------------------------
+# Real-time cloud streaming transcription (Deepgram WebSocket)
+# ---------------------------------------------------------------------------
+
+class CloudStreamingTranscriber:
+    """
+    True real-time streaming STT over Deepgram's WebSocket API.
+
+    Sends raw PCM chunks as they arrive and yields interim + final transcripts
+    with sub-second latency — unlike the windowed local StreamingTranscriber,
+    which batches whisper passes. Requires DEEPGRAM_API_KEY and the optional
+    `websocket-client` package; degrades gracefully (available()==False) when
+    either is missing, so callers can fall back to the local path.
+
+        st = CloudStreamingTranscriber(on_partial=print)
+        if st.available():
+            st.start(); st.push(pcm); ...; text = st.finish()
+    """
+
+    DG_URL = ("wss://api.deepgram.com/v1/listen"
+              "?encoding=linear16&sample_rate={rate}&channels=1"
+              "&interim_results=true&punctuate=true&language={lang}&model=nova-2")
+
+    def __init__(
+        self,
+        config:     Optional[VoiceConfig] = None,
+        api_key:    str = "",
+        on_partial: Optional[Callable[[str], None]] = None,
+        on_final:   Optional[Callable[[str], None]] = None,
+    ) -> None:
+        self._cfg     = config or VoiceConfig()
+        self._key     = api_key or os.environ.get("DEEPGRAM_API_KEY", "")
+        self._on_part = on_partial
+        self._on_fin  = on_final
+        self._ws      = None
+        self._thread  = None
+        self._finals:  List[str] = []
+        self._lock     = threading.Lock()
+        self._closed   = False
+
+    @staticmethod
+    def _have_ws() -> bool:
+        try:
+            import websocket  # noqa: F401  (websocket-client)
+            return True
+        except ImportError:
+            return False
+
+    def available(self) -> bool:
+        """True only if both the API key and the websocket dep are present."""
+        return bool(self._key) and self._have_ws()
+
+    def start(self) -> bool:
+        """Open the streaming connection. Returns True on success."""
+        if not self.available():
+            return False
+        import json as _json
+        import websocket  # type: ignore
+
+        url = self.DG_URL.format(rate=self._cfg.sample_rate, lang=self._cfg.language)
+
+        def _on_message(_ws, message):
+            try:
+                data = _json.loads(message)
+                alt = (data.get("channel", {}).get("alternatives") or [{}])[0]
+                text = (alt.get("transcript") or "").strip()
+                if not text:
+                    return
+                if data.get("is_final"):
+                    with self._lock:
+                        self._finals.append(text)
+                    if self._on_fin:
+                        self._on_fin(text)
+                elif self._on_part:
+                    self._on_part(text)
+            except Exception:
+                pass
+
+        try:
+            self._ws = websocket.WebSocketApp(
+                url,
+                header=[f"Authorization: Token {self._key}"],
+                on_message=_on_message,
+            )
+            self._thread = threading.Thread(target=self._ws.run_forever, daemon=True)
+            self._thread.start()
+            time.sleep(0.3)   # let the socket establish
+            return True
+        except Exception as e:
+            log.warning("Deepgram stream start failed: %s", e)
+            return False
+
+    def push(self, pcm: bytes) -> None:
+        """Send a raw PCM16 chunk to the live stream."""
+        if self._ws is None or self._closed:
+            return
+        try:
+            import websocket  # type: ignore
+            self._ws.send(pcm, opcode=websocket.ABNF.OPCODE_BINARY)
+        except Exception:
+            pass
+
+    def finish(self, timeout: float = 3.0) -> str:
+        """Close the stream and return the full concatenated final transcript."""
+        self._closed = True
+        try:
+            if self._ws is not None:
+                # Deepgram flush: send an empty frame then close.
+                try:
+                    self._ws.send(b"", opcode=__import__("websocket").ABNF.OPCODE_BINARY)
+                except Exception:
+                    pass
+                time.sleep(min(timeout, 1.0))
+                self._ws.close()
+        except Exception:
+            pass
+        with self._lock:
+            return " ".join(self._finals).strip()
 
 
 # ---------------------------------------------------------------------------
