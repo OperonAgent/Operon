@@ -76,5 +76,6 @@ def dispatch(ctx: "CommandContext") -> bool:
 
 
 # Import handler modules so their @command registrations run.
-from cmd_handlers import info as _info          # noqa: E402,F401
-from cmd_handlers import session_cmds as _sess  # noqa: E402,F401
+from cmd_handlers import info as _info               # noqa: E402,F401
+from cmd_handlers import session_cmds as _sess        # noqa: E402,F401
+from cmd_handlers import config_cmds as _cfg          # noqa: E402,F401

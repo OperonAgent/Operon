@@ -113,6 +113,40 @@ class TestInfoCommands:
         ctx.cost_tracker.session_report.assert_called_once()
 
 
+class TestConfigCommands:
+    def test_registered(self):
+        for c in ("/models", "/config", "/soul"):
+            assert c in DISPATCH
+
+    def test_models(self):
+        cfg = MagicMock()
+        cfg.get.side_effect = lambda k, d=None: (
+            {"a": {"provider": "openai"}} if k == "model_profiles" else "a")
+        ctx = _ctx("/models", config=cfg)
+        with patch("builtins.print") as p:
+            dispatch(ctx)
+        assert p.called
+
+    def test_config(self):
+        cfg = MagicMock(); cfg.get_safe_display.return_value = {"model": "gpt-4o"}
+        ctx = _ctx("/config", config=cfg)
+        with patch("builtins.print"):
+            dispatch(ctx)
+        cfg.get_safe_display.assert_called_once()
+
+    def test_soul_none(self):
+        ctx = _ctx("/soul", soul=None)
+        with patch("builtins.print"):
+            dispatch(ctx)  # must not raise
+
+    def test_soul_read(self):
+        soul = MagicMock(); soul.read.return_value = "I am Operon."
+        ctx = _ctx("/soul", soul=soul)
+        with patch("builtins.print"):
+            dispatch(ctx)
+        soul.read.assert_called_once()
+
+
 class TestContextDataclass:
     def test_fields_present(self):
         c = _ctx("/clear")

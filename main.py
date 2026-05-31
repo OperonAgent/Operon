@@ -1416,18 +1416,7 @@ def handle_command(
 
     # ── Soul ──────────────────────────────────────────────────────────────────
 
-    elif cmd == "/soul":
-        if soul is None:
-            print(theme.warning("Soul system not initialised."))
-        elif len(parts) > 1 and parts[1] == "edit":
-            import subprocess as _sp
-            path   = soul.get_path()
-            editor = os.environ.get("EDITOR", "nano")
-            _sp.run([editor, path])
-            print(theme.success(f"Soul updated: {path}"))
-        else:
-            print(theme.box(["  OPERON SOUL", "---"] +
-                            ["  " + l for l in soul.read().splitlines()[:30]]))
+    # /soul is handled by cmd_handlers/config_cmds.py
 
     # ── Model / config ────────────────────────────────────────────────────────
 
@@ -1440,24 +1429,12 @@ def handle_command(
             config.set("active_provider", info["provider"])
             print(theme.success(f"Switched to: {parts[1]}  [{info['provider']}]"))
 
-    elif cmd == "/models":
-        profiles = config.get("model_profiles", {})
-        current  = config.get("default_model", "")
-        lines    = ["  AVAILABLE MODEL PROFILES", "---"]
-        for name, profile in sorted(profiles.items()):
-            marker = ">> " if name == current else "   "
-            lines.append(f"  {marker}{name:<28} [{profile.get('provider', '?')}]")
-        print(theme.box(lines))
+    # /models is handled by cmd_handlers/config_cmds.py
 
     elif cmd == "/local":
         _handle_local(parts, config, theme)
 
-    elif cmd == "/config":
-        cfg   = config.get_safe_display()
-        lines = ["  CURRENT CONFIGURATION", "---"]
-        for k, v in cfg.items():
-            lines.append(f"  {k:<22} {str(v)[:44]}")
-        print(theme.box(lines))
+    # /config is handled by cmd_handlers/config_cmds.py
 
     elif cmd == "/setup":
         from setup_wizard import run_wizard
