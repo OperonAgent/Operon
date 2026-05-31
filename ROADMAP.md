@@ -25,7 +25,7 @@ agent loop into its own module.
 
 **Target:** v3.2.0
 
-### 2. Synchronous tool dispatch
+### 2. Synchronous tool dispatch  (context compaction now async — done)
 Tool calls run synchronously, so one slow network tool blocks the turn.
 
 **Plan:** Move the tool-dispatch layer in `run_agent_loop()` to `asyncio`, using

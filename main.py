@@ -47,7 +47,9 @@ from core.heartbeat        import HeartbeatScheduler
 from core.goal_tracker     import GoalTracker, as_system_block as _goals_system_block
 from core.macros           import MacroManager
 from core.retry_policy       import RetryPolicyManager, execute_with_retry, get_policy
-from core.context_compressor import maybe_compress_messages
+from core.context_compressor import (
+    maybe_compress_messages, BackgroundCompressor, _estimate_tokens,
+)
 from core.plugin_sdk         import get_manager as get_plugin_manager
 
 # ── Phase 11 modules (lazy-imported where safe, direct where small) ────────
@@ -3608,6 +3610,68 @@ def handle_command(
         print(theme.warning(f"Unknown command: {cmd}\n{hint}"))
 
 
+# ── Background context compaction ───────────────────────────────────────────
+# The expensive LLM summarization runs OFF the hot path: when context crosses a
+# soft threshold we submit a snapshot to a background thread and keep going; the
+# compacted result is merged in on a later turn. A hard ceiling triggers a
+# synchronous compaction so the context window can never actually overflow.
+
+_bg_compressor: "BackgroundCompressor | None" = None
+_bg_submit_len: int = 0
+
+
+def _background_compact(messages: list, system: str,
+                        soft: int, hard: int, theme) -> tuple:
+    """
+    Non-blocking context compaction.
+    Returns (messages, applied) — applied=True when a compaction took effect
+    this turn (either a ready background result merged in, or a synchronous
+    hard-ceiling compaction).
+    """
+    global _bg_compressor, _bg_submit_len
+    applied = False
+
+    if _bg_compressor is None:
+        _bg_compressor = BackgroundCompressor()
+
+    # 1) Merge any finished background result (compacted prefix + msgs added since).
+    if not _bg_compressor.is_running():
+        result = _bg_compressor.get_result()
+        if result is not None:
+            compacted, did = result
+            if did and 0 < _bg_submit_len <= len(messages) and len(compacted) < _bg_submit_len:
+                appended = messages[_bg_submit_len:]
+                messages = list(compacted) + appended
+                applied = True
+            # consume the result so it isn't re-applied
+            try:
+                _bg_compressor._last_result = None  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            _bg_submit_len = 0
+
+    tokens = _estimate_tokens(messages, system)
+
+    # 2) Hard ceiling — compact synchronously now (rare; protects the window).
+    if tokens >= hard:
+        messages, did = maybe_compress_messages(
+            messages, system=system, threshold=soft, tail_turns=6, force=True)
+        if did:
+            applied = True
+            if theme:
+                print(theme.dim("  [Context] Hard limit reached — synchronous compaction applied."))
+        return messages, applied
+
+    # 3) Soft threshold — kick off a background compaction for a later turn.
+    if tokens >= soft and not _bg_compressor.is_running():
+        _bg_submit_len = len(messages)
+        _bg_compressor.submit(list(messages), system=system)
+        if theme:
+            print(theme.dim("  [Context] Background compaction started (non-blocking)."))
+
+    return messages, applied
+
+
 # ── Agent loop ────────────────────────────────────────────────────────────────
 
 def run_agent_loop(
@@ -3775,14 +3839,11 @@ def run_agent_loop(
         # exceeds threshold.  Tail (last 6 turns) and head (first user msg)
         # are always kept verbatim.  Never crashes — returns originals on failure.
         _compress_threshold = config.get("compress_threshold_tokens", 20_000)
-        messages, _did_compress = maybe_compress_messages(
-            messages,
-            system    = system,
-            threshold = _compress_threshold,
-            tail_turns = 6,
-        )
+        _compress_hard      = int(_compress_threshold * 1.5)
+        messages, _did_compress = _background_compact(
+            messages, system, _compress_threshold, _compress_hard, theme)
         if _did_compress:
-            print(theme.dim("  [Context] LLM-powered compaction applied — middle turns summarised."))
+            print(theme.dim("  [Context] Compaction applied — middle turns summarised."))
 
         # ── Streaming-first completion ────────────────────────────────────────
         # Stream response tokens from the API.  The spinner stops as soon as
