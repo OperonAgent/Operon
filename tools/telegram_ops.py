@@ -232,11 +232,11 @@ class InlineKeyboard:
     @staticmethod
     def yes_no(yes_data: str = "yes", no_data: str = "no") -> Dict:
         """Convenience: two-button Yes/No keyboard."""
-        return InlineKeyboard().button("✅ Yes", yes_data).button("❌ No", no_data).build()
+        return InlineKeyboard().button("✓ Yes", yes_data).button("✗ No", no_data).build()
 
     @staticmethod
     def confirm_cancel(confirm_data: str = "confirm", cancel_data: str = "cancel") -> Dict:
-        return InlineKeyboard().button("✅ Confirm", confirm_data).button("🚫 Cancel", cancel_data).build()
+        return InlineKeyboard().button("✓ Confirm", confirm_data).button(" Cancel", cancel_data).build()
 
     @staticmethod
     def from_list(buttons: List[Tuple[str, str]], row_width: int = 2) -> Dict:

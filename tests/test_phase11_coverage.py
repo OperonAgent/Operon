@@ -1072,7 +1072,7 @@ class TestTheme:
         assert len(r) > 0
 
     def test_planner_box(self, theme):
-        rows = [("🧬", "OBJECTIVE", "Build something"), ("📋", "PLAN", "Step by step")]
+        rows = [("", "OBJECTIVE", "Build something"), ("", "PLAN", "Step by step")]
         r = theme.planner_box(rows)
         assert isinstance(r, str)
         assert "OBJECTIVE" in r or "Build something" in r

@@ -110,7 +110,7 @@ def clarify(question: str, **_) -> dict:
     Ask the user a blocking clarifying question and return their typed answer.
     Use when the task is ambiguous and proceeding blindly would be wrong.
     """
-    print(f"\n  ❓ Operon needs clarification:\n  {question}")
+    print(f"\n   Operon needs clarification:\n  {question}")
     print()
     try:
         answer = input("  Your answer ❯ ").strip()

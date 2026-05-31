@@ -312,7 +312,7 @@ class SecretsManager:
     def _plain_set(self, key: str, value: str) -> bool:
         """Stores in plain JSON — prints a security warning."""
         print(
-            f"\n  ⚠  Storing secret '{key}' as plain text. "
+            f"\n  !  Storing secret '{key}' as plain text. "
             "For encryption, run:  pip install keyring  or  pip install cryptography\n",
             file=sys.stderr,
         )

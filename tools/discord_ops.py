@@ -219,19 +219,19 @@ class DiscordEmbed:
 
     @classmethod
     def success(cls, title: str, description: str = "") -> "DiscordEmbed":
-        return cls(title=f"✅ {title}", description=description, color=EmbedColor.SUCCESS)
+        return cls(title=f"✓ {title}", description=description, color=EmbedColor.SUCCESS)
 
     @classmethod
     def error(cls, title: str, description: str = "") -> "DiscordEmbed":
-        return cls(title=f"❌ {title}", description=description, color=EmbedColor.DANGER)
+        return cls(title=f"✗ {title}", description=description, color=EmbedColor.DANGER)
 
     @classmethod
     def warning(cls, title: str, description: str = "") -> "DiscordEmbed":
-        return cls(title=f"⚠️ {title}", description=description, color=EmbedColor.WARNING)
+        return cls(title=f"! {title}", description=description, color=EmbedColor.WARNING)
 
     @classmethod
     def info(cls, title: str, description: str = "") -> "DiscordEmbed":
-        return cls(title=f"ℹ️ {title}", description=description, color=EmbedColor.INFO)
+        return cls(title=f"ℹ {title}", description=description, color=EmbedColor.INFO)
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "DiscordEmbed":
@@ -1247,7 +1247,7 @@ def discord_create_thread(
 def discord_add_reaction(
     channel_id: str = "",
     message_id: str = "",
-    emoji: str = "👍",
+    emoji: str = "",
     bot_token: str = "",
     **_,
 ) -> dict:

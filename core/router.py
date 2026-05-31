@@ -157,7 +157,7 @@ class ModelRouter:
 
             except requests.exceptions.Timeout:
                 print(
-                    f"\n  ⏱  Model took too long — request timed out after {timeout}s.\n"
+                    f"\n  Model took too long — request timed out after {timeout}s.\n"
                     f"  Try a shorter prompt, a faster model (/model), or raise the\n"
                     f"  timeout with /setup → Step 5 (current: {timeout}s)."
                 )

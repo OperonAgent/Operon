@@ -38,7 +38,7 @@ VENV_DIR = HERE / ".venv"
 _TTY = sys.stdout.isatty()
 def _c(code, s): return f"\033[{code}m{s}\033[0m" if _TTY else s
 def ok(s):   return _c("1;38;5;82",  f"  ✓ {s}")
-def warn(s): return _c("1;38;5;214", f"  ⚠ {s}")
+def warn(s): return _c("1;38;5;214", f"  ! {s}")
 def err(s):  return _c("1;38;5;196", f"  ✗ {s}")
 def info(s): return _c("1;38;5;81",  f"  → {s}")
 def head(s): return _c("1;38;5;141", s)

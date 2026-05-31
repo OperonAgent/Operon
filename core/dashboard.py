@@ -209,7 +209,7 @@ async function refresh(){
       <div class="mem-row">
         <span class="badge ${badgeClass(m.type)}">${m.type||'?'}</span>
         <span class="mem-content">${escHtml(m.content||'')}</span>
-        <span class="mem-del" onclick="deleteMem(${m.id})" title="Delete">✕</span>
+        <span class="mem-del" onclick="deleteMem(${m.id})" title="Delete"></span>
       </div>`).join('');
   }
 

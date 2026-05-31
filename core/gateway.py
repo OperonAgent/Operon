@@ -131,7 +131,7 @@ class TelegramGateway:
 
         # ── Access control ────────────────────────────────────────────────────
         if self._allowed_users and user_id not in self._allowed_users:
-            self._send(chat_id, "⛔ You are not authorised to use this Operon instance.")
+            self._send(chat_id, " You are not authorised to use this Operon instance.")
             return
 
         self._msg_count += 1
@@ -155,7 +155,7 @@ class TelegramGateway:
             else:
                 self._send(chat_id, "_(no response)_")
         except Exception as e:
-            self._send(chat_id, f"⚠ Agent error: {e}")
+            self._send(chat_id, f"! Agent error: {e}")
             self._log(f"Agent error for '{text[:40]}': {e}", level="ERROR")
 
     def _send(self, chat_id: int, text: str, parse_mode: str = "Markdown") -> None:

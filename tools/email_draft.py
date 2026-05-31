@@ -99,7 +99,7 @@ def _prompt_credentials(need_email: bool, need_password: bool) -> tuple:
 
     print()
     print(top)
-    print(_box_line(f"  {_AMBER}{_BOLD}⚙  EMAIL SETUP — one-time configuration{_RESET}"))
+    print(_box_line(f"  {_AMBER}{_BOLD}  EMAIL SETUP — one-time configuration{_RESET}"))
     print(sep)
     if need_email:
         print(_box_line(f"  {_WHITE}Your Gmail address is needed to send emails.{_RESET}"))
@@ -150,7 +150,7 @@ def _render_draft(
 
     print()
     print(top)
-    print(_box_line(f"  {_AMBER}{_BOLD}✉  EMAIL DRAFT — PREVIEW{_RESET}"))
+    print(_box_line(f"  {_AMBER}{_BOLD}  EMAIL DRAFT — PREVIEW{_RESET}"))
     print(sep)
     print(_box_line(f"  {_GRAY}From   :{_RESET}  {_WHITE}{sender}{_RESET}"))
     print(_box_line(f"  {_GRAY}To     :{_RESET}  {_WHITE}{to}{_RESET}"))

@@ -1,7 +1,7 @@
 """
 ui/banner.py — Operon startup banner
 
-📏 MATHEMATICALLY CALIBRATED GRID — 78 Character Fixed Ceiling Width
+MATHEMATICALLY CALIBRATED GRID — 78 Character Fixed Ceiling Width
 Every printed line: 1 leading space + 78 chars = 79 visible cols total.
 
 Layout (exact match to original code structure):

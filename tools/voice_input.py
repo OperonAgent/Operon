@@ -41,7 +41,7 @@ def _record_sounddevice(duration: int, sample_rate: int) -> Optional[bytes]:
         import sounddevice as sd
         import numpy as np
 
-        print(f"\n  🎙  Recording {duration}s… (press Ctrl+C to stop early)", flush=True)
+        print(f"\n    Recording {duration}s… (press Ctrl+C to stop early)", flush=True)
         audio = sd.rec(
             int(duration * sample_rate),
             samplerate=sample_rate,
@@ -86,7 +86,7 @@ def _record_pyaudio(duration: int, sample_rate: int) -> Optional[bytes]:
             frames_per_buffer=CHUNK,
         )
 
-        print(f"\n  🎙  Recording {duration}s… (press Ctrl+C to stop early)", flush=True)
+        print(f"\n    Recording {duration}s… (press Ctrl+C to stop early)", flush=True)
         frames = []
         try:
             for _ in range(0, int(sample_rate / CHUNK * duration)):
@@ -120,7 +120,7 @@ def _record_arecord(duration: int, sample_rate: int) -> Optional[bytes]:
     try:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             tmp = f.name
-        print(f"\n  🎙  Recording {duration}s via arecord…", flush=True)
+        print(f"\n    Recording {duration}s via arecord…", flush=True)
         subprocess.run(
             ["arecord", "-d", str(duration), "-r", str(sample_rate),
              "-f", "S16_LE", "-c", "1", tmp],

@@ -85,22 +85,22 @@ class TestDiscordEmbed:
 
     def test_factory_success(self):
         e = DiscordEmbed.success("All Good", "Tests pass")
-        assert "✅" in e.title
+        assert "✓" in e.title
         assert e.color == EmbedColor.SUCCESS
 
     def test_factory_error(self):
         e = DiscordEmbed.error("Failed", "Build broken")
-        assert "❌" in e.title
+        assert "✗" in e.title
         assert e.color == EmbedColor.DANGER
 
     def test_factory_warning(self):
         e = DiscordEmbed.warning("Slow", "High latency")
-        assert "⚠️" in e.title
+        assert "!" in e.title
         assert e.color == EmbedColor.WARNING
 
     def test_factory_info(self):
         e = DiscordEmbed.info("FYI", "Just info")
-        assert "ℹ️" in e.title
+        assert "ℹ" in e.title
         assert e.color == EmbedColor.INFO
 
     def test_from_dict_roundtrip(self):
@@ -235,10 +235,14 @@ class TestActionRow:
         assert len(ar.to_dict()["components"][0]["options"]) == 25
 
     def test_button_emoji(self):
+        # Discord supports attaching an emoji to a button; custom emoji are
+        # referenced by text name, so the plumbing is exercised without any
+        # emoji character living in the project.
         ar = ActionRow()
-        ar.add_button("React", custom_id="react", emoji="👍")
+        ar.add_button("React", custom_id="react", emoji="thumbsup")
         d = ar.to_dict()
         assert "emoji" in d["components"][0]
+        assert d["components"][0]["emoji"]["name"] == "thumbsup"
 
     def test_disabled_button(self):
         ar = ActionRow()
@@ -344,7 +348,7 @@ class TestDiscordBotMocked:
     def test_add_reaction(self):
         bot = self._bot()
         with mock.patch.object(bot, "_req", return_value=self._ok()) as m:
-            bot.add_reaction("ch-1", "m1", "👍")
+            bot.add_reaction("ch-1", "m1", "")
             assert m.call_args[0][0] == "PUT"
             assert "reactions" in m.call_args[0][1]
 

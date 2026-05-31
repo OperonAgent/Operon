@@ -207,7 +207,8 @@ class Task:
 
     @property
     def priority_icon(self) -> str:
-        return {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}.get(self.priority, "⚪")
+        # Monochrome text markers (no emoji): critical=!!, high=!, medium==, low=·
+        return {"critical": "!!", "high": "!", "medium": "=", "low": "·"}.get(self.priority, " ")
 
     @property
     def is_overdue(self) -> bool:
@@ -245,7 +246,7 @@ class Task:
         return d
 
     def one_line(self) -> str:
-        due    = f" [due:{self.due_date}{'⚠' if self.is_overdue else ''}]" if self.due_date else ""
+        due    = f" [due:{self.due_date}{'!' if self.is_overdue else ''}]" if self.due_date else ""
         labels = f" [{','.join(self.labels)}]" if self.labels else ""
         assign = f" @{self.assignee}" if self.assignee else ""
         parent = f" ↳{self.parent_id}" if self.parent_id else ""
@@ -862,7 +863,7 @@ def handle_kanban_command(args: List[str], db: Optional[KanbanDB] = None) -> str
             f"  Assignee: {task.assignee or '—'}",
             f"  Sprint:   {task.sprint or '—'}",
             f"  Labels:   {', '.join(task.labels) or '—'}",
-            f"  Due:      {task.due_date or '—'}{'  ⚠ OVERDUE' if task.is_overdue else ''}",
+            f"  Due:      {task.due_date or '—'}{'  ! OVERDUE' if task.is_overdue else ''}",
             f"  Age:      {task.age_days:.1f} days",
         ]
         if task.description:
@@ -940,7 +941,7 @@ def handle_kanban_command(args: List[str], db: Optional[KanbanDB] = None) -> str
         for r in records:
             ts = datetime.fromtimestamp(r.ts).strftime("%m-%d %H:%M")
             if r.field == "comment":
-                lines.append(f"  {ts} 💬 {r.actor}: {r.comment}")
+                lines.append(f"  {ts}  {r.actor}: {r.comment}")
             else:
                 lines.append(f"  {ts} {r.actor}: {r.field} {r.old_value!r}→{r.new_value!r}"
                              + (f" ({r.comment})" if r.comment else ""))

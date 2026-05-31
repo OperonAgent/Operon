@@ -66,20 +66,20 @@ def _write_settings() -> None:
 
 def build() -> None:
     if sys.platform != "darwin":
-        print("❌  DMG builds only work on macOS.")
+        print("✗  DMG builds only work on macOS.")
         sys.exit(1)
 
     if not APP_PATH.exists():
-        print(f"❌  {APP_PATH} not found. Run  pyinstaller operon.spec  first.")
+        print(f"✗  {APP_PATH} not found. Run  pyinstaller operon.spec  first.")
         sys.exit(1)
 
     try:
         import dmgbuild  # noqa: F401
     except ImportError:
-        print("❌  dmgbuild not installed. Run: pip install dmgbuild")
+        print("✗  dmgbuild not installed. Run: pip install dmgbuild")
         sys.exit(1)
 
-    print(f"📦  Building {DMG_PATH.name} …")
+    print(f"  Building {DMG_PATH.name} …")
     _write_settings()
 
     result = subprocess.run(
@@ -90,10 +90,10 @@ def build() -> None:
 
     if result.returncode == 0 and DMG_PATH.exists():
         size_mb = DMG_PATH.stat().st_size / 1024 / 1024
-        print(f"\n✅  Built: {DMG_PATH}  ({size_mb:.0f} MB)")
+        print(f"\n✓  Built: {DMG_PATH}  ({size_mb:.0f} MB)")
         print(f"   Drag Operon.app to Applications to install.")
     else:
-        print(f"\n❌  DMG build failed (exit {result.returncode})")
+        print(f"\n✗  DMG build failed (exit {result.returncode})")
         sys.exit(1)
 
 

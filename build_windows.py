@@ -80,12 +80,12 @@ def validate_windows() -> None:
             issues.append(f"{pkg} not installed")
 
     if issues:
-        print("\n⚠  Issues found:")
+        print("\n!  Issues found:")
         for i in issues:
             print(f"   • {i}")
         print("\nFix the above, then run: pyinstaller operon.spec")
     else:
-        print("\n✅  Environment ready. Run: pyinstaller operon.spec")
+        print("\n✓  Environment ready. Run: pyinstaller operon.spec")
 
 
 def main() -> None:

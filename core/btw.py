@@ -62,9 +62,9 @@ class BtWMessage:
     def to_display(self) -> str:
         prefix = {
             BtWLevel.INFO:   "ℹ",
-            BtWLevel.HINT:   "💡",
-            BtWLevel.WARN:   "⚠",
-            BtWLevel.NOTICE: "🔒",
+            BtWLevel.HINT:   "",
+            BtWLevel.WARN:   "!",
+            BtWLevel.NOTICE: "",
         }.get(self.level, "•")
         return f"{prefix} {self.text}"
 

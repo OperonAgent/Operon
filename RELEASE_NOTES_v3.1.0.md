@@ -10,7 +10,7 @@ with local models via Ollama.
 
 ---
 
-## ⚡ Install in one command
+##  Install in one command
 
 ```bash
 git clone https://github.com/OperonAgent/Operon.git
@@ -25,7 +25,7 @@ Pre-built `Operon.app` / `operon.exe` / Linux binaries are attached below.
 
 ---
 
-## ✨ Highlights
+##  Highlights
 
 - **185+ tools** — files, shell, git, HTTP, databases, PDF, vision, image gen, TTS, **video gen**
 - **8+ AI providers** — OpenAI, Anthropic, OpenRouter, Ollama, LM Studio, Jan, and more
@@ -43,7 +43,7 @@ Pre-built `Operon.app` / `operon.exe` / Linux binaries are attached below.
 
 ---
 
-## 🆕 Since the project's internal builds
+##  Since the project's internal builds
 
 - One-command installer + dependency bootstrapper with browser self-heal
 - Supply-chain CVE auditing (`core/dep_audit.py`) wired into `/doctor`
@@ -57,7 +57,7 @@ Pre-built `Operon.app` / `operon.exe` / Linux binaries are attached below.
 
 ---
 
-## 🩹 Fixes
+##  Fixes
 
 - Repaired 6 broken slash commands (`/vector`, `/desktop`, `/synth`,
   `/checkpoint`, `/kanban list`, `/usage`, `/knowledge`)
@@ -66,7 +66,7 @@ Pre-built `Operon.app` / `operon.exe` / Linux binaries are attached below.
 
 ---
 
-## 📋 Known limitations (tracked in [ROADMAP.md](ROADMAP.md))
+##  Known limitations (tracked in [ROADMAP.md](ROADMAP.md))
 
 - `main.py` modularization is in progress (read-only commands extracted; global-state commands pending)
 - Messaging channels (Discord/Telegram/Slack) are functional but not yet at production depth
@@ -74,14 +74,14 @@ Pre-built `Operon.app` / `operon.exe` / Linux binaries are attached below.
 
 ---
 
-## 🔧 Requirements
+##  Requirements
 
 - Python 3.9+ (3.11+ recommended), macOS / Linux / Windows
 - Optional: Ollama for fully-offline local models (no API key)
 
 ---
 
-## 📚 Docs
+##  Docs
 
 - **Setup Guide:** `Operon_Setup_Guide.pdf`
 - **Full reference:** `Operon_Documentation.pdf`

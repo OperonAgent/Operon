@@ -121,7 +121,7 @@ class PluginEntry:
 
     def install_display(self) -> str:
         cmd = self.install_cmd or f"pip install {self.name}"
-        v   = "✓ verified" if self.verified else "⚠ unverified"
+        v   = "✓ verified" if self.verified else "! unverified"
         return f"{self.name}=={self.version}  [{v}]  {cmd}"
 
     def short_str(self) -> str:
@@ -476,7 +476,7 @@ class PluginInstaller:
             if entry.sha256 and digest.startswith(entry.sha256[:16]):
                 return True, f"✓ SHA-256 prefix match ({digest[:16]}…)"
             if entry.sha256:
-                return False, f"⚠ SHA-256 mismatch: {digest[:16]}… ≠ {entry.sha256[:16]}…"
+                return False, f"! SHA-256 mismatch: {digest[:16]}… ≠ {entry.sha256[:16]}…"
             return True, "(SHA-256 not provided in registry)"
         except Exception as e:
             return True, f"(SHA-256 check skipped: {e})"

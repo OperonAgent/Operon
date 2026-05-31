@@ -355,7 +355,7 @@ class OperonTUI:
             return _ans in ("y", "yes") or (default and _ans == "")
         try:
             ans = self._session.prompt(
-                HTML(f'<ansiyellow>  ⚠ {question}{suffix} </ansiyellow>'),
+                HTML(f'<ansiyellow>  ! {question}{suffix} </ansiyellow>'),
             ).strip().lower()
             return ans in ("y", "yes") or (default and ans == "")
         except (KeyboardInterrupt, EOFError):

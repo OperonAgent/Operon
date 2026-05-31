@@ -195,7 +195,7 @@ def _aria_to_text(node: Dict, depth: int = 0, lines: Optional[List] = None) -> s
         level = node.get("level", 2)
         lines.append(f"\n{indent}{'#' * level} {name}")
     elif role == "link":
-        lines.append(f"{indent}🔗 {name}")
+        lines.append(f"{indent} {name}")
     elif role == "button":
         lines.append(f"{indent}[btn] {name}")
     elif role in ("textbox", "searchbox", "combobox"):

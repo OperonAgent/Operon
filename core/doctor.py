@@ -78,7 +78,7 @@ class DoctorReport:
         return self.failed == 0
 
     def summary(self) -> str:
-        status = "✅ Healthy" if self.healthy else "❌ Issues found"
+        status = "✓ Healthy" if self.healthy else "✗ Issues found"
         return (
             f"{status} — "
             f"{self.passed} passed, {self.warned} warned, "
@@ -88,10 +88,10 @@ class DoctorReport:
     def render(self) -> str:
         lines = ["── Operon Doctor ──────────────────────────────────────"]
         for c in self.checks:
-            icon = {"pass": "✅", "warn": "⚠ ", "fail": "❌", "skip": "⏭ "}[c.status.value]
+            icon = {"pass": "✓", "warn": "! ", "fail": "✗", "skip": "⏭ "}[c.status.value]
             line = f"  {icon}  {c.name:<40} {c.message}"
             if c.fix:
-                line += f"\n       🔧 Fixed: {c.fix}"
+                line += f"\n        Fixed: {c.fix}"
             lines.append(line)
         lines.append("────────────────────────────────────────────────────")
         lines.append(f"  {self.summary()}")

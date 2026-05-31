@@ -46,7 +46,7 @@ def _h(text):   return f"{_B}{_C}{text}{_R}"
 def _label(t):  return f"{_A}{t}{_R}"
 def _ok(t):     return f"  {_G}✓{_R}  {t}"
 def _skip(t):   return f"  {_DG}–{_R}  {_DG}{t}{_R}"
-def _warn(t):   return f"  {_A}⚠{_R}  {t}"
+def _warn(t):   return f"  {_A}!{_R}  {t}"
 def _dot(t):    return f"  {_PL}●{_R}  {t}"
 def _sep():     print(f"\n{_DG}{'─' * 62}{_R}\n")
 def _plain(s):  return re.sub(r'\033\[[0-9;]*m', '', s)

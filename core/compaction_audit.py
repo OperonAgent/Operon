@@ -68,7 +68,7 @@ class CompactionAuditResult:
 
     def summary(self) -> str:
         if self.valid:
-            return f"✅ Compaction valid (score={self.score:.2f})"
+            return f"✓ Compaction valid (score={self.score:.2f})"
         issues: list[str] = []
         if self.missing_sections:
             issues.append(f"Missing sections: {', '.join(self.missing_sections)}")
@@ -78,7 +78,7 @@ class CompactionAuditResult:
             issues.append(f"Security: {'; '.join(self.security_issues)}")
         if self.quality_issues:
             issues.append(f"Quality: {'; '.join(self.quality_issues)}")
-        return f"❌ Compaction issues — {'; '.join(issues)}"
+        return f"✗ Compaction issues — {'; '.join(issues)}"
 
 
 # ── Identifier extraction ─────────────────────────────────────────────────────

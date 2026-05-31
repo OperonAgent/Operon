@@ -33,7 +33,7 @@ _TTY = sys.stdout.isatty()
 def _c(code: str, s: str) -> str:
     return f"\033[{code}m{s}\033[0m" if _TTY else s
 def _ok(s: str)   -> str: return _c("1;38;5;82",  f"  ✓ {s}")
-def _warn(s: str) -> str: return _c("1;38;5;214", f"  ⚠ {s}")
+def _warn(s: str) -> str: return _c("1;38;5;214", f"  ! {s}")
 def _err(s: str)  -> str: return _c("1;38;5;196", f"  ✗ {s}")
 def _info(s: str) -> str: return _c("1;38;5;81",  f"  → {s}")
 def _head(s: str) -> str: return _c("1;38;5;141", s)

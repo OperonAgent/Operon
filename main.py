@@ -712,7 +712,7 @@ def _run_doctor(config: ConfigManager, memory: MemoryPipeline,
                    check_prompt_injection_module, check_command_risk_module,
                    check_dependency_vulnerabilities, check_disk_space):
             r = fn()
-            icon = {"pass": "✓", "warn": "⚠", "fail": "✗", "skip": "○"}[r.status.value]
+            icon = {"pass": "✓", "warn": "!", "fail": "✗", "skip": "○"}[r.status.value]
             lines.append(f"    {icon} {r.name:<35} {r.message}")
     except Exception as e:
         lines.append(f"  ○ Security checks    error: {e}")
@@ -2234,8 +2234,8 @@ def handle_command(
             else:
                 _ICON = {"todo": "○", "in_progress": "●", "done": "✓",
                          "blocked": "✗", "review": "◉", "cancelled": "–"}
-                _PICO = {"high": "🔴", "critical": "🚨", "medium": "🟠",
-                         "low": "🟢", "none": "⚪"}
+                _PICO = {"high": "", "critical": "", "medium": "",
+                         "low": "", "none": ""}
                 lines = [f"  TASKS  ({result.get('total', result.get('count', len(tasks)))} total, showing {len(tasks)})", "---"]
                 for t in tasks:
                     icon  = _ICON.get(t["status"], "?")
@@ -2571,14 +2571,14 @@ def handle_command(
                 lines = ["  CREDENTIAL POOL", "---"]
                 for provider, info in s.items():
                     avail = info["active"] + (1 if info.get("degraded", 0) > 0 else 0)
-                    health = "✓" if info["active"] > 0 else ("⚠" if info["cooling"] > 0 else "✗")
+                    health = "✓" if info["active"] > 0 else ("!" if info["cooling"] > 0 else "✗")
                     lines.append(
                         f"  {health} {provider:<12}  "
                         f"total={info['total']}  active={info['active']}  "
                         f"cooling={info['cooling']}  banned={info['banned']}"
                     )
                     for k in info["keys"][:3]:
-                        st_icon = {"active":"✓","cooling":"⏳","banned":"✗","degraded":"⚠"}.get(k["status"],"?")
+                        st_icon = {"active":"✓","cooling":"~","banned":"✗","degraded":"!"}.get(k["status"],"?")
                         lines.append(f"      {st_icon} {k['label']:<20}  uses={k['use_count']}  errors={k['error_count']}")
                 print(theme.box(lines))
 
@@ -2808,7 +2808,7 @@ def handle_command(
                                  else f"No tasks with status '{status_f}'."))
             else:
                 _ST_ICON = {"queued": "⋯", "running": "▶", "succeeded": "✓",
-                            "failed": "✗", "timed_out": "⏱", "cancelled": "—", "lost": "?"}
+                            "failed": "✗", "timed_out": "!", "cancelled": "—", "lost": "?"}
                 lines = [f"  TASK REGISTRY  ({len(tasks)} tasks)", "---"]
                 for t in tasks:
                     icon = _ST_ICON.get(t["status"], "?")
@@ -3167,7 +3167,7 @@ def handle_command(
                 _swe_agent = SWEAgent(repo_path=_os.getcwd())
                 print(theme.info("  [SWE] Running test suite…"))
                 _tr = _swe_agent.run_tests(timeout=60)
-                _status = "✅" if _tr.ok else "❌"
+                _status = "✓" if _tr.ok else "✗"
                 print(theme.box([
                     f"  {_status} Test run: {_tr.summary()}",
                     f"  Command: {_tr.cmd}",
@@ -4636,7 +4636,7 @@ def run_agent_loop(
                     )
                     _new_skill = _synth.synthesize_from_current(_last_user, content[:100])
                     if _new_skill:
-                        print(theme.dim(f"  ✦ Skill synthesized: '{_new_skill.name}' (quality={_new_skill.quality:.1f})"))
+                        print(theme.dim(f"   Skill synthesized: '{_new_skill.name}' (quality={_new_skill.quality:.1f})"))
                     else:
                         _synth.reset_trajectory()  # reset even if not synthesized
                 except Exception:

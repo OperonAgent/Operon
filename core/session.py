@@ -174,9 +174,9 @@ class SessionManager:
                 content = content[:77] + "…"
             if role == "user":
                 turn += 1
-                lines.append(f"  T{turn:02d} 👤 YOU     {content}")
+                lines.append(f"  T{turn:02d}  YOU     {content}")
             elif role == "assistant":
-                lines.append(f"       🤖 OPERON  {content}")
+                lines.append(f"        OPERON  {content}")
             # Skip tool result messages from display
         return lines
 

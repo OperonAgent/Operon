@@ -137,7 +137,7 @@ class Theme:
 
     def prompt(self) -> str:
         """User input prompt — matches V1.0.0 style."""
-        return f"{PURPLE_LIGHT}👤 YOU{PURPLE_BASE} ❯{RESET} "
+        return f"{PURPLE_LIGHT} YOU{PURPLE_BASE} ❯{RESET} "
 
     # ── Status indicators ─────────────────────────────────────────────────────
 
@@ -151,7 +151,7 @@ class Theme:
         return f"{GREEN_NEON}  ✓ {text}{RESET}"
 
     def warning(self, text: str) -> str:
-        return f"{AMBER}  ⚠ {text}{RESET}"
+        return f"{AMBER}  ! {text}{RESET}"
 
     def error(self, text: str) -> str:
         return f"{RED}  ✗ {text}{RESET}"
@@ -165,7 +165,7 @@ class Theme:
         """
         Print the agent's final response.
         - Code fences are syntax-highlighted (requires pygments)
-        - First line is prefixed with  🤖 OPERON ❯
+        - First line is prefixed with   OPERON ❯
         - Remaining lines are indented
         - stream=True: character-by-character typing effect
         """
@@ -174,7 +174,7 @@ class Theme:
 
         # Build prefix for line 0
         text_lines[0] = (
-            f"\n{PURPLE_LIGHT}🤖 OPERON ❯ {WHITE_BRIGHT}" + text_lines[0]
+            f"\n{PURPLE_LIGHT} OPERON ❯ {WHITE_BRIGHT}" + text_lines[0]
         )
         for i in range(1, len(text_lines)):
             text_lines[i] = f"{WHITE_BRIGHT}{text_lines[i]}"
@@ -193,10 +193,10 @@ class Theme:
     # ── Tool display ──────────────────────────────────────────────────────────
 
     def tool_call(self, text: str) -> str:
-        return f"{CYAN_GLOW}  ⚙  {text}{RESET}"
+        return f"{CYAN_GLOW}    {text}{RESET}"
 
     def tool_result(self, text: str) -> str:
-        return f" {PURPLE_DIM}📥 [OBSERVATION]: {text}{RESET}"
+        return f" {PURPLE_DIM} [OBSERVATION]: {text}{RESET}"
 
     # ── Generic box (for /help, /config, etc.) ────────────────────────────────
 
@@ -236,7 +236,7 @@ class Theme:
 
         result = [top]
         for emoji, label, value in rows:
-            # Combined label: "🧬 OBJECTIVE : " = fixed 15-char visual slot
+            # Combined label: " OBJECTIVE : " = fixed 15-char visual slot
             label_str = f"{emoji} {AMBER}{BOLD}{label:<11}{RESET}{GRAY_TEXT}:{RESET}"
             # value fills the rest, truncated to fit
             # label visual width ≈ 2(emoji) + 1 + 11 + 1 = 15, then ": " = 2 → ~17

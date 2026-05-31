@@ -111,7 +111,7 @@ _ZERO_WIDTH_RE = re.compile(
     r"[­"         # soft hyphen
     r"​"          # zero-width space
     r"‌"          # zero-width non-joiner
-    r"‍"          # zero-width joiner
+    r""          # zero-width joiner
     r"⁠"          # word joiner
     r"⁡-⁤"   # function application / invisible plus / times / separator
     r"﻿"          # BOM / zero-width no-break space

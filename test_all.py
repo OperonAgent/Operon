@@ -1071,7 +1071,7 @@ t("btw: dismiss reduces active",        len(ch.get_active()) == 2)
 
 rendered = ch.render_inline()
 t("btw: render_inline not empty",       len(rendered) > 0)
-t("btw: render_inline has symbols",     "⚠" in rendered or "💡" in rendered)
+t("btw: render_inline has symbols",     "!" in rendered or "" in rendered)
 
 sidebar = ch.render_sidebar()
 t("btw: render_sidebar not empty",      len(sidebar) > 0)

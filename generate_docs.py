@@ -2080,7 +2080,7 @@ def build_comparison():
         ("Windows .exe",             "✓ PyInstaller",           "✗",               "✗",                 "✓ Tauri"),
         ("Test count",               "1,896 passing",           "~100,000+",       "~500,000+",         "~600"),
         ("60+ slash commands",       "✓",                       "✓",               "✗ (extension UI)",  "✗"),
-        ("Email draft (SMTP)",       "✓ email_draft (safe)",    "email_send ⚠",    "~",                 "✗"),
+        ("Email draft (SMTP)",       "✓ email_draft (safe)",    "email_send !",    "~",                 "✗"),
         ("Scratchpad reasoning",     "✓ JSON-first",            "✓ Hermes format", "~",                 "✗"),
         ("Soul / persona system",    "✓ ~/.operon/SOUL.md",     "✓",               "~",                 "✗"),
         ("Local model support",      "✓ Ollama/LMStudio/Jan",   "✓",               "✓",                 "✓"),
@@ -2487,14 +2487,14 @@ def build_feature_setup():
         "Once credentials are set, you never have to specify them again. "
         "Just describe the email you want and Operon composes it:", "body"))
     elems += code_block([
-        "👤 YOU  ❯  send an email to example@mail.com asking if Operon is great",
+        " YOU  ❯  send an email to example@mail.com asking if Operon is great",
         "",
-        "  ⚙  email_draft(to='example@mail.com',",
+        "    email_draft(to='example@mail.com',",
         "                  subject='Is Operon Great?',",
         "                  body='Hi,\\n\\nI wanted to reach out and ask...')",
         "",
         " ╭──────────────────────────────────────────────────────╮",
-        " │  ✉  EMAIL DRAFT — PREVIEW                           │",
+        " │    EMAIL DRAFT — PREVIEW                           │",
         " ├──────────────────────────────────────────────────────┤",
         " │  From   : your.address@gmail.com                    │",
         " │  To     : example@mail.com                          │",
@@ -2553,11 +2553,11 @@ def build_feature_setup():
 
     elems += code_block([
         "# Operon saves facts automatically when you tell it things:",
-        "👤 YOU  ❯  my name is Alex",
-        "🤖 OPERON  ❯  Got it! I've saved your name permanently.",
+        " YOU  ❯  my name is Alex",
+        " OPERON  ❯  Got it! I've saved your name permanently.",
         "",
-        "👤 YOU  ❯  my sender email is alex@gmail.com",
-        "🤖 OPERON  ❯  Saved! I'll use that for all future emails.",
+        " YOU  ❯  my sender email is alex@gmail.com",
+        " OPERON  ❯  Saved! I'll use that for all future emails.",
         "",
         "# Manage facts with /knowledge:",
         "/knowledge list              # show all stored facts",
@@ -2649,7 +2649,7 @@ def build_feature_setup():
         "",
         "# Test — switch model and ask something:",
         "/model gpt-4o",
-        "👤 YOU ❯ what model are you?",
+        " YOU ❯ what model are you?",
     ], label="Shell + REPL")
 
     # ── Web Search ─────────────────────────────────────────────────────────────
@@ -2664,7 +2664,7 @@ def build_feature_setup():
         "/doctor   # should show: ✓ duckduckgo_search",
         "",
         "# Try it:",
-        "👤 YOU ❯ search for the latest Python 3.13 release notes",
+        " YOU ❯ search for the latest Python 3.13 release notes",
     ], label="Shell + REPL")
 
     # ── Browser Automation ─────────────────────────────────────────────────────
@@ -2683,7 +2683,7 @@ def build_feature_setup():
         "/doctor   # should show: ✓ playwright chromium  (browser automation ready)",
         "",
         "# 4. Try it:",
-        "👤 YOU ❯ go to bbc.com and tell me the top headline",
+        " YOU ❯ go to bbc.com and tell me the top headline",
     ], label="Shell + REPL")
 
     # ── SSH ────────────────────────────────────────────────────────────────────
@@ -2696,7 +2696,7 @@ def build_feature_setup():
         "pip install paramiko",
         "",
         "# Test SSH in Operon:",
-        "👤 YOU ❯ ssh into my-server.com as ubuntu and show me disk usage",
+        " YOU ❯ ssh into my-server.com as ubuntu and show me disk usage",
         "",
         "# Or directly:",
         "ssh_exec(host='my-server.com', user='ubuntu', command='df -h')",
@@ -2766,17 +2766,17 @@ def build_knowledge_base():
         "Operon proactively saves facts when you share them in conversation. "
         "You do not need to use a slash command:", "body"))
     elems += code_block([
-        "👤 YOU ❯  my name is Alex",
-        "  ⚙  knowledge_set(key='user_name', value='Alex')",
-        "🤖 OPERON ❯  Got it, Alex! I've saved your name permanently.",
+        " YOU ❯  my name is Alex",
+        "    knowledge_set(key='user_name', value='Alex')",
+        " OPERON ❯  Got it, Alex! I've saved your name permanently.",
         "",
-        "👤 YOU ❯  my timezone is EST",
-        "  ⚙  knowledge_set(key='timezone', value='EST')",
-        "🤖 OPERON ❯  Saved your timezone as EST.",
+        " YOU ❯  my timezone is EST",
+        "    knowledge_set(key='timezone', value='EST')",
+        " OPERON ❯  Saved your timezone as EST.",
         "",
         "# Next session — Operon already knows:",
-        "👤 YOU ❯  hi",
-        "🤖 OPERON ❯  Hello, Alex! How can I help you today?",
+        " YOU ❯  hi",
+        " OPERON ❯  Hello, Alex! How can I help you today?",
     ], label="REPL — Automatic saving")
 
     elems += sub_section("System Prompt Injection")

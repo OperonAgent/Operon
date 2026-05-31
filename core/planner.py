@@ -3,7 +3,7 @@ Operon Hermes Planner Renderer — V2.
 
 Renders the agent's reasoning scratchpad in the Operon Engine V1.0.0 style:
   • Rounded corners ┌ ┐ └ ┘
-  • Emoji-prefixed labels: 🧬 🔑 📝 🚀
+  • Emoji-prefixed labels:    
   • Single-row per field with intelligent truncation
 """
 
@@ -33,10 +33,10 @@ class HermesPlannerRenderer:
             draft_str = "—"
 
         rows = [
-            ("🧬", "OBJECTIVE ", obj),
-            ("🔑", "VARIABLES ", vars_str),
-            ("📝", "SANDBOX   ", draft_str),
-            ("🚀", "NEXT STEP ", nxt),
+            ("", "OBJECTIVE ", obj),
+            ("", "VARIABLES ", vars_str),
+            ("", "SANDBOX   ", draft_str),
+            ("", "NEXT STEP ", nxt),
         ]
 
         box = theme.planner_box(rows)

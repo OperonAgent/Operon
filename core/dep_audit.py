@@ -207,7 +207,7 @@ def format_report(report: AuditReport) -> str:
     if report.clean:
         lines.append("  ✓ No known vulnerabilities found")
     else:
-        lines.append(f"  ⚠ {report.vulnerable_count} vulnerable package(s):")
+        lines.append(f"  ! {report.vulnerable_count} vulnerable package(s):")
         for v in report.vulnerabilities:
             fix = f" → upgrade to {v.fixed_in}" if v.fixed_in else ""
             lines.append(f"    • {v.package} {v.version}  [{v.vuln_id}] {v.summary}{fix}")

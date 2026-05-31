@@ -43,7 +43,7 @@ class TestFileWrite:
 
     def test_unicode_content(self, tmp_path):
         p = str(tmp_path / "unicode.txt")
-        content = "日本語テスト 🚀 émojis"
+        content = "日本語テスト  émojis"
         file_write(p, content)
         assert Path(p).read_text(encoding="utf-8") == content
 

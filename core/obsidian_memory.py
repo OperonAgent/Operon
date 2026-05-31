@@ -7,14 +7,14 @@ code snippets) as structured Markdown files with backlinks and tags.
 Reads vault notes back as context for the agent.
 
 Folder structure in vault:
-  📁 Daily/          ← conversation summaries  (Daily/2026-05-28.md)
-  📁 People/         ← entity notes            (People/John_Smith.md)
-  📁 Projects/       ← project knowledge       (Projects/Operon.md)
-  📁 Tasks/          ← task history            (Tasks/active.md)
-  📁 Code/           ← code snippets           (Code/python_tips.md)
-  📁 Facts/          ← standalone facts        (Facts/preferences.md)
-  📁 Goals/          ← agent goals             (Goals/active.md)
-  📁 Sessions/       ← session logs            (Sessions/session_001.md)
+   Daily/          ← conversation summaries  (Daily/2026-05-28.md)
+   People/         ← entity notes            (People/John_Smith.md)
+   Projects/       ← project knowledge       (Projects/Operon.md)
+   Tasks/          ← task history            (Tasks/active.md)
+   Code/           ← code snippets           (Code/python_tips.md)
+   Facts/          ← standalone facts        (Facts/preferences.md)
+   Goals/          ← agent goals             (Goals/active.md)
+   Sessions/       ← session logs            (Sessions/session_001.md)
 
 Features:
   - Auto-creates vault folders on first sync
