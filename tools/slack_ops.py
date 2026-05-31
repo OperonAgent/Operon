@@ -402,6 +402,178 @@ def slack_status(bot_token: str = "", **_) -> dict:
     return {"success": True, "user": d.get("user",""), "team": d.get("team",""), "team_id": d.get("team_id",""), "url": d.get("url","")}
 
 
+def slack_get_thread(channel: str = "", thread_ts: str = "", limit: int = 50,
+                     bot_token: str = "", **_) -> dict:
+    """
+    Read a full message thread (parent + all replies).
+    Requires SLACK_BOT_TOKEN with channels:history scope.
+
+    Args:
+        channel   — channel ID or name
+        thread_ts — the parent message timestamp (ts of the thread root)
+        limit     — max replies to return, 1-200 (default 50)
+
+    Returns:
+        {success, parent, replies: [{ts, user, text}], reply_count, error}
+    """
+    token = _get_token(bot_token)
+    if not token:
+        return {"success": False, "error": "SLACK_BOT_TOKEN required."}
+    if not channel or not thread_ts:
+        return {"success": False, "error": "channel and thread_ts are required."}
+    res = _slack_api("conversations.replies",
+                     {"channel": channel, "ts": thread_ts,
+                      "limit": min(200, max(1, int(limit)))}, token)
+    if not res["success"]:
+        return res
+    msgs = res["data"].get("messages", [])
+    fmt = lambda m: {"ts": m.get("ts", ""), "user": m.get("user", m.get("bot_id", "unknown")),
+                     "text": m.get("text", "")}
+    parent = fmt(msgs[0]) if msgs else {}
+    replies = [fmt(m) for m in msgs[1:]]
+    return {"success": True, "parent": parent, "replies": replies,
+            "reply_count": len(replies), "channel": channel, "error": ""}
+
+
+def slack_update_message(channel: str = "", ts: str = "", text: str = "",
+                         blocks: list = None, bot_token: str = "", **_) -> dict:
+    """
+    Edit an existing message the bot posted (chat.update).
+
+    Args:
+        channel — channel ID where the message lives
+        ts      — timestamp of the message to edit
+        text    — new message text
+        blocks  — optional new Block Kit blocks
+
+    Returns:
+        {success, ts, channel, error}
+    """
+    token = _get_token(bot_token)
+    if not token:
+        return {"success": False, "error": "SLACK_BOT_TOKEN required."}
+    if not channel or not ts:
+        return {"success": False, "error": "channel and ts are required."}
+    payload: Dict[str, Any] = {"channel": channel, "ts": ts, "text": text or ""}
+    if blocks:
+        payload["blocks"] = blocks
+    res = _slack_api("chat.update", payload, token)
+    if not res["success"]:
+        return res
+    d = res["data"]
+    return {"success": True, "ts": d.get("ts", ts), "channel": d.get("channel", channel), "error": ""}
+
+
+def slack_schedule_message(channel: str = "", text: str = "", post_at: int = 0,
+                           blocks: list = None, bot_token: str = "", **_) -> dict:
+    """
+    Schedule a message for future delivery (chat.scheduleMessage).
+
+    Args:
+        channel — channel ID or name
+        text    — message text
+        post_at — Unix epoch seconds for delivery (must be in the future,
+                  within 120 days)
+        blocks  — optional Block Kit blocks
+
+    Returns:
+        {success, scheduled_message_id, post_at, channel, error}
+    """
+    token = _get_token(bot_token)
+    if not token:
+        return {"success": False, "error": "SLACK_BOT_TOKEN required."}
+    if not channel or not post_at:
+        return {"success": False, "error": "channel and post_at (epoch seconds) are required."}
+    payload: Dict[str, Any] = {"channel": channel, "text": text or "", "post_at": int(post_at)}
+    if blocks:
+        payload["blocks"] = blocks
+    res = _slack_api("chat.scheduleMessage", payload, token)
+    if not res["success"]:
+        return res
+    d = res["data"]
+    return {"success": True, "scheduled_message_id": d.get("scheduled_message_id", ""),
+            "post_at": d.get("post_at", post_at), "channel": d.get("channel", channel), "error": ""}
+
+
+def slack_pin_message(channel: str = "", ts: str = "", unpin: bool = False,
+                      bot_token: str = "", **_) -> dict:
+    """
+    Pin (or unpin) a message in a channel.
+
+    Args:
+        channel — channel ID
+        ts      — timestamp of the message
+        unpin   — set True to remove the pin instead (default False)
+
+    Returns:
+        {success, error}
+    """
+    token = _get_token(bot_token)
+    if not token:
+        return {"success": False, "error": "SLACK_BOT_TOKEN required."}
+    if not channel or not ts:
+        return {"success": False, "error": "channel and ts are required."}
+    method = "pins.remove" if unpin else "pins.add"
+    res = _slack_api(method, {"channel": channel, "timestamp": ts}, token)
+    return {"success": res["success"], "pinned": not unpin, "error": res.get("error", "")}
+
+
+def slack_set_topic(channel: str = "", topic: str = "", bot_token: str = "", **_) -> dict:
+    """
+    Set a channel's topic (conversations.setTopic).
+
+    Args:
+        channel — channel ID
+        topic   — the new topic text
+
+    Returns:
+        {success, topic, error}
+    """
+    token = _get_token(bot_token)
+    if not token:
+        return {"success": False, "error": "SLACK_BOT_TOKEN required."}
+    if not channel:
+        return {"success": False, "error": "channel is required."}
+    res = _slack_api("conversations.setTopic", {"channel": channel, "topic": topic}, token)
+    if not res["success"]:
+        return res
+    return {"success": True, "topic": res["data"].get("channel", {}).get("topic", {}).get("value", topic), "error": ""}
+
+
+def slack_build_blocks(title: str = "", body: str = "", fields: dict = None,
+                       context: str = "", **_) -> dict:
+    """
+    Compose a Slack Block Kit payload from simple parts — so the agent can
+    build rich messages without hand-writing JSON. Pass the returned `blocks`
+    to slack_send / slack_update_message.
+
+    Args:
+        title   — header text (rendered as a header block)
+        body    — main markdown body (section block)
+        fields  — optional dict of {label: value} rendered as a two-column field grid
+        context — optional small footnote line (context block)
+
+    Returns:
+        {success, blocks: [...]}
+    """
+    blocks: List[Dict[str, Any]] = []
+    if title:
+        blocks.append({"type": "header",
+                       "text": {"type": "plain_text", "text": title[:150], "emoji": True}})
+    if body:
+        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": body}})
+    if fields:
+        blocks.append({"type": "section",
+                       "fields": [{"type": "mrkdwn", "text": f"*{k}*\n{v}"}
+                                  for k, v in list(fields.items())[:10]]})
+    if context:
+        blocks.append({"type": "context",
+                       "elements": [{"type": "mrkdwn", "text": context}]})
+    if not blocks:
+        return {"success": False, "error": "nothing to build — provide title/body/fields/context."}
+    return {"success": True, "blocks": blocks}
+
+
 # ---------------------------------------------------------------------------
 # Tool definitions + dispatch
 # ---------------------------------------------------------------------------
@@ -457,6 +629,41 @@ _TOOL_DEFINITIONS: List[Dict] = [
         "description": "Check Slack connection status and authentication.",
         "input_schema": {"type": "object", "properties": {}},
     },
+    {
+        "name": "slack_delete_message",
+        "description": "Delete a message previously sent by the bot.",
+        "input_schema": {"type": "object", "properties": {"channel": {"type": "string"}, "ts": {"type": "string"}}, "required": ["channel", "ts"]},
+    },
+    {
+        "name": "slack_get_thread",
+        "description": "Read a full Slack message thread (parent message plus all replies).",
+        "input_schema": {"type": "object", "properties": {"channel": {"type": "string"}, "thread_ts": {"type": "string"}, "limit": {"type": "integer", "default": 50}}, "required": ["channel", "thread_ts"]},
+    },
+    {
+        "name": "slack_update_message",
+        "description": "Edit an existing message the bot posted (chat.update).",
+        "input_schema": {"type": "object", "properties": {"channel": {"type": "string"}, "ts": {"type": "string"}, "text": {"type": "string"}, "blocks": {"type": "array"}}, "required": ["channel", "ts"]},
+    },
+    {
+        "name": "slack_schedule_message",
+        "description": "Schedule a message for future delivery at a Unix epoch timestamp.",
+        "input_schema": {"type": "object", "properties": {"channel": {"type": "string"}, "text": {"type": "string"}, "post_at": {"type": "integer"}, "blocks": {"type": "array"}}, "required": ["channel", "post_at"]},
+    },
+    {
+        "name": "slack_pin_message",
+        "description": "Pin or unpin a message in a Slack channel.",
+        "input_schema": {"type": "object", "properties": {"channel": {"type": "string"}, "ts": {"type": "string"}, "unpin": {"type": "boolean", "default": False}}, "required": ["channel", "ts"]},
+    },
+    {
+        "name": "slack_set_topic",
+        "description": "Set the topic of a Slack channel.",
+        "input_schema": {"type": "object", "properties": {"channel": {"type": "string"}, "topic": {"type": "string"}}, "required": ["channel", "topic"]},
+    },
+    {
+        "name": "slack_build_blocks",
+        "description": "Compose a Slack Block Kit payload (header/body/fields/context) for rich messages.",
+        "input_schema": {"type": "object", "properties": {"title": {"type": "string"}, "body": {"type": "string"}, "fields": {"type": "object"}, "context": {"type": "string"}}},
+    },
 ]
 
 _DISPATCH: Dict[str, Any] = {
@@ -470,4 +677,11 @@ _DISPATCH: Dict[str, Any] = {
     "slack_add_reaction":    slack_add_reaction,
     "slack_create_channel":  slack_create_channel,
     "slack_status":          slack_status,
+    "slack_delete_message":  slack_delete_message,
+    "slack_get_thread":      slack_get_thread,
+    "slack_update_message":  slack_update_message,
+    "slack_schedule_message": slack_schedule_message,
+    "slack_pin_message":     slack_pin_message,
+    "slack_set_topic":       slack_set_topic,
+    "slack_build_blocks":    slack_build_blocks,
 }

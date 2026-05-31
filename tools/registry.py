@@ -67,6 +67,10 @@ from tools.discord_ops import (
 )
 from tools.slack_ops import (
     slack_send, slack_get_messages, slack_list_channels, slack_upload_file,
+    slack_send_dm, slack_list_users, slack_add_reaction, slack_search_messages,
+    slack_create_channel, slack_status, slack_delete_message, slack_get_thread,
+    slack_update_message, slack_schedule_message, slack_pin_message,
+    slack_set_topic, slack_build_blocks,
 )
 from tools.db_ops import (
     db_query, db_list_tables, db_describe_table, mongo_query,
@@ -931,6 +935,115 @@ _TOOL_DEFINITIONS = [
             "title":     "string — file title in Slack (optional)",
             "message":   "string — message to accompany the file (optional)",
         },
+    },
+    {
+        "name": "slack_send_dm",
+        "description": "Send a direct message to a Slack user by user ID (U...). Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "user_id": "string — Slack user ID, e.g. U0123456 (required)",
+            "text":    "string — message text (required)",
+        },
+    },
+    {
+        "name": "slack_get_thread",
+        "description": "Read a full Slack thread: the parent message plus all replies. Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "channel":   "string — channel ID (required)",
+            "thread_ts": "string — parent message timestamp / thread root (required)",
+            "limit":     "integer — max replies, 1-200 (optional, default 50)",
+        },
+    },
+    {
+        "name": "slack_update_message",
+        "description": "Edit a message the bot previously posted (chat.update). Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "channel": "string — channel ID where the message lives (required)",
+            "ts":      "string — timestamp of the message to edit (required)",
+            "text":    "string — new message text (optional)",
+            "blocks":  "array — new Block Kit blocks (optional)",
+        },
+    },
+    {
+        "name": "slack_schedule_message",
+        "description": "Schedule a message for future delivery at a Unix epoch timestamp. Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "channel": "string — channel ID or name (required)",
+            "text":    "string — message text (optional if blocks given)",
+            "post_at": "integer — Unix epoch seconds for delivery, must be future (required)",
+            "blocks":  "array — Block Kit blocks (optional)",
+        },
+    },
+    {
+        "name": "slack_add_reaction",
+        "description": "Add a reaction emoji to a Slack message. Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "channel": "string — channel ID (required)",
+            "ts":      "string — message timestamp (required)",
+            "emoji":   "string — emoji name without colons, e.g. 'thumbsup' (required)",
+        },
+    },
+    {
+        "name": "slack_pin_message",
+        "description": "Pin or unpin a message in a Slack channel. Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "channel": "string — channel ID (required)",
+            "ts":      "string — message timestamp (required)",
+            "unpin":   "boolean — set true to remove the pin (optional, default false)",
+        },
+    },
+    {
+        "name": "slack_set_topic",
+        "description": "Set the topic of a Slack channel. Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "channel": "string — channel ID (required)",
+            "topic":   "string — the new channel topic (required)",
+        },
+    },
+    {
+        "name": "slack_build_blocks",
+        "description": "Compose a Slack Block Kit payload from simple parts (header/body/fields/context). Returns blocks to pass to slack_send.",
+        "params": {
+            "title":   "string — header text (optional)",
+            "body":    "string — main markdown body (optional)",
+            "fields":  "object — {label: value} rendered as a field grid (optional)",
+            "context": "string — small footnote line (optional)",
+        },
+    },
+    {
+        "name": "slack_search_messages",
+        "description": "Search messages across the Slack workspace. Requires SLACK_BOT_TOKEN with search:read.",
+        "params": {
+            "query": "string — search query (required)",
+            "count": "integer — max results (optional, default 10)",
+        },
+    },
+    {
+        "name": "slack_list_users",
+        "description": "List all active Slack workspace members. Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "limit": "integer — max users (optional, default 100)",
+        },
+    },
+    {
+        "name": "slack_create_channel",
+        "description": "Create a new Slack channel. Requires SLACK_BOT_TOKEN with channels:manage.",
+        "params": {
+            "name":       "string — channel name (required)",
+            "is_private": "boolean — create a private channel (optional, default false)",
+        },
+    },
+    {
+        "name": "slack_delete_message",
+        "description": "Delete a message previously posted by the bot. Requires SLACK_BOT_TOKEN.",
+        "params": {
+            "channel": "string — channel ID (required)",
+            "ts":      "string — message timestamp (required)",
+        },
+    },
+    {
+        "name": "slack_status",
+        "description": "Check Slack connection status and authentication (auth.test).",
+        "params": {},
     },
     # ── Database ──────────────────────────────────────────────────────────────
     {
@@ -1989,6 +2102,19 @@ _DISPATCH: dict[str, Callable] = {
     "slack_get_messages":         slack_get_messages,
     "slack_list_channels":        slack_list_channels,
     "slack_upload_file":          slack_upload_file,
+    "slack_send_dm":              slack_send_dm,
+    "slack_get_thread":           slack_get_thread,
+    "slack_update_message":       slack_update_message,
+    "slack_schedule_message":     slack_schedule_message,
+    "slack_add_reaction":         slack_add_reaction,
+    "slack_pin_message":          slack_pin_message,
+    "slack_set_topic":            slack_set_topic,
+    "slack_build_blocks":         slack_build_blocks,
+    "slack_search_messages":      slack_search_messages,
+    "slack_list_users":           slack_list_users,
+    "slack_create_channel":       slack_create_channel,
+    "slack_delete_message":       slack_delete_message,
+    "slack_status":               slack_status,
     # Database
     "db_query":                   db_query,
     "db_list_tables":             db_list_tables,
