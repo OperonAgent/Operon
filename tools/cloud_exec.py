@@ -23,6 +23,8 @@ import os
 import subprocess
 import tempfile
 import time
+import urllib.request   # noqa: F401 — used as urllib.request.* in Daytona helpers
+import urllib.error     # noqa: F401 — used as urllib.error.* in Daytona helpers
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -187,9 +189,6 @@ def daytona_run(
             ),
         }
 
-    import urllib.request as _req
-    import urllib.error   as _err
-
     def _post(path: str, body: dict) -> dict:
         data = json.dumps(body).encode()
         r    = urllib.request.Request(
@@ -267,7 +266,6 @@ def daytona_list_workspaces(**_) -> dict:
     if not api_key:
         return {"success": False, "error": "DAYTONA_API_KEY not set."}
 
-    import urllib.request as _req
     r = urllib.request.Request(
         _daytona_url("/workspaces"), headers=_daytona_headers(), method="GET"
     )
