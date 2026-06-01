@@ -120,6 +120,10 @@ class ModelRouter:
         self._last_stop_reason: str = "end_turn"
         # API key pools — keyed by provider, lazily initialized
         self._key_pools: dict[str, _KeyPool] = {}
+        # Proactive rate-limit awareness (reads x-ratelimit-* response headers
+        # to pause before hitting a 429, complementing the reactive path).
+        from core.rate_limit_tracker import RateLimitTracker
+        self._rl_tracker = RateLimitTracker()
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -149,6 +153,9 @@ class ModelRouter:
         last_exc = None
         for attempt in range(1, _RETRY_MAX + 1):
             try:
+                # Proactive: pause briefly if the last response said we're near
+                # a rate-limit boundary (bounded; no-op when no header data).
+                self._rl_tracker.throttle(provider, sink=lambda m: print("\n" + m))
                 if provider == "anthropic":
                     return self._call_anthropic(active_key, model_id, system, messages, timeout)
                 else:
@@ -453,6 +460,7 @@ class ModelRouter:
 
         resp = requests.post(base_url, headers=headers, json=payload, timeout=timeout)
         resp.raise_for_status()
+        self._rl_tracker.update(provider, resp.headers)
         data = resp.json()
         usage = data.get("usage", {})
         self.last_usage = {
@@ -500,6 +508,7 @@ class ModelRouter:
             timeout=timeout,
         )
         resp.raise_for_status()
+        self._rl_tracker.update("anthropic", resp.headers)
         data = resp.json()
         usage = data.get("usage", {})
         self.last_usage = {
