@@ -366,7 +366,12 @@ def build():
     e.append(HR())
     e += bullets([
         "Type a request in plain English — Operon plans, calls tools, and answers.",
-        "Try <font face='Courier'>/help</font> to see all 60+ slash commands.",
+        "Try <font face='Courier'>/help</font> to see all 66+ slash commands.",
+        "Run <font face='Courier'>/mesh fix &lt;objective&gt;</font> for the autonomous "
+        "Engineer↔Auditor self-correction loop, or <font face='Courier'>/mesh auto</font> "
+        "to decompose a big task across specialist workers.",
+        "Enable a completion chime with <font face='Courier'>/notify on</font> "
+        "(add <font face='Courier'>/notify desktop</font> for native alerts).",
         "Read <b>Operon_Documentation.pdf</b> for the full technical reference.",
         "Use <font face='Courier'>/doctor</font> anytime to check system health.",
         "Configure messaging, dashboard, or MCP servers via <font face='Courier'>/setup</font>.",

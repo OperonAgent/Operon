@@ -539,7 +539,7 @@ def build_cover():
     # ── Stats strip (2-row table: big number + small label) ───────────────────
     w4 = (PAGE_W - 36 * mm) / 4
     stats_data = [
-        ["185+",  "8+",            "60+",      "∞"],
+        ["186+",  "8+",            "60+",      "∞"],
         ["TOOLS", "AI PROVIDERS",  "COMMANDS", "MCP TOOLS"],
     ]
     stats_style = TableStyle([
@@ -603,7 +603,7 @@ def build_cover():
         "cover_version"))
     elems.append(SP(1))
     elems.append(P(
-        'Phase 11 Build  •  185+ Tools  •  60+ Commands  •  1,896 Tests  •  © 2026 Kunwar Mann',
+        '186+ Tools  •  66+ Commands  •  2,434 Tests  •  © 2026 Kunwar Mann',
         "cover_version"))
 
     elems.append(PageBreak())
@@ -622,7 +622,7 @@ def build_toc():
         ("2",  "Installation &amp; Quick Start", "6"),
         ("3",  "Configuration &amp; Providers", "9"),
         ("4",  "Core Architecture — 39+ Modules", "12"),
-        ("5",  "Complete Tool Reference — 185+ Tools", "16"),
+        ("5",  "Complete Tool Reference — 186+ Tools", "16"),
         ("6",  "All 60+ Slash Commands", "26"),
         ("7",  "Memory System — FTS5 + Vector + Obsidian", "32"),
         ("8",  "SKILL.md &amp; Curator / Skill Synthesizer", "34"),
@@ -663,12 +663,13 @@ def build_intro():
 
     elems.append(P(
         "Operon v3.1.0 is an advanced AI Terminal Cockpit — a fully agentic Python REPL "
-        "supporting <b>185+ tools</b>, <b>8+ AI providers</b>, <b>60+ slash commands</b>, "
-        "and a deeply integrated Phase 11 feature set spanning semantic vector memory "
+        "supporting <b>186+ tools</b>, <b>8+ AI providers</b>, <b>66+ slash commands</b>, "
+        "and a deeply integrated feature set spanning semantic vector memory "
         "(LanceDB), Obsidian vault sync, smart per-turn model routing, "
         "a self-improvement skill synthesizer, full desktop computer use automation, "
-        "a Claude Code-style TUI, SWE agent loop, voice pipeline, multi-agent mesh, "
-        "and a plugin marketplace. Built and verified with <b>1,896 passing tests</b>.", "body"))
+        "a Claude Code-style TUI, SWE agent loop, real-time streaming voice, a "
+        "hierarchical multi-agent orchestration engine, and a plugin marketplace. "
+        "Built and verified with <b>2,434 passing tests</b>.", "body"))
 
     elems.append(P(
         "Every response follows a strict <b>JSON-first scratchpad pattern</b>: Operon "
@@ -684,7 +685,11 @@ def build_intro():
         ("main.py", "REPL entry point, slash command router, agent loop orchestrator"),
         ("core/config.py", "ConfigManager — ~/.operon/config.json, API keys, profiles"),
         ("core/router.py", "ModelRouter — 6 providers, retry, 7-pass JSON repair, context truncation"),
-        ("core/memory.py", "MemoryPipeline — SQLite FTS5, auto-inject, /memory commands"),
+        ("core/rate_limit_tracker.py", "Proactive x-ratelimit-* header tracking — pause before a 429"),
+        ("core/memory.py", "MemoryPipeline — SQLite FTS5, normalized fact dedup, auto-inject"),
+        ("core/multi_agent.py", "AgentMesh — worker personas, spawn_agent factory, self-correction"),
+        ("core/tool_guardrails.py", "Per-turn loop detection — block/warn/halt repeated failures"),
+        ("core/notify.py", "Turn-completion notifications — terminal bell + desktop alerts"),
         ("core/session.py", "SessionManager — snapshots, rollback, compress, search"),
         ("core/planner.py", "HermesPlannerRenderer — structured scratchpad format injection"),
         ("core/skills.py", "SkillLoader — SKILL.md packs from ~/.operon/skills/"),
@@ -704,8 +709,10 @@ def build_intro():
         ("tools/vision.py", "Vision analysis + DALL-E 3 image gen + TTS"),
         ("tools/ssh_exec.py", "SSH exec/upload/download with paramiko + subprocess fallback"),
         ("tools/messaging.py", "Telegram send, clarify, todo tools"),
+        ("tools/slack_ops.py", "Slack bot — send, threads, edit, schedule, pin, Block Kit"),
+        ("tools/telegram_ops.py", "Telegram bot — send/edit/delete/pin, photo, document"),
         ("tools/email_send.py", "SMTP email with attachments (Gmail/Outlook/Yahoo/iCloud)"),
-        ("tools/file_search.py", "Recursive regex file content search"),
+        ("tools/file_search.py", "Recursive regex search — whole-word + files-with-matches modes"),
         ("ui/banner.py", "ASCII banner with telemetry on startup"),
         ("ui/theme.py", "ANSI colour theme, spinner, box formatting"),
     ]
@@ -1081,7 +1088,7 @@ def build_architecture():
 
 def build_tools():
     elems = []
-    elems += section_break("Complete Tool Reference — 185+ Tools", 5)
+    elems += section_break("Complete Tool Reference — 186+ Tools", 5)
 
     elems.append(P(
         "Operon exposes <b>40 built-in tools</b> to the agent, plus any tools dynamically "
@@ -2007,7 +2014,7 @@ def build_comparison():
     elems += section_break("Comparison: Operon vs Hermes vs OpenClaw vs OpenHuman", 21)
 
     elems.append(P(
-        "Operon v3.1.0 (Phase 11) is compared below against Hermes Agent v0.14, "
+        "Operon v3.1.0 is compared below against Hermes Agent v0.14, "
         "OpenClaw (TypeScript, 1.2M LOC), and OpenHuman (Tauri/React desktop app). "
         "Scores are based on actual source code inspection. All four are active open-source projects.", "body"))
 
@@ -2058,7 +2065,7 @@ def build_comparison():
     elems.append(P("<b>Feature-by-feature comparison</b>", "h2"))
     comp_rows = [
         ("Feature",                  "Operon v3.1.0",          "Hermes",          "OpenClaw",          "OpenHuman"),
-        ("Tool count",               "185+ built-in",           "~200+",           "~150+ TS",          "~30 (GUI)"),
+        ("Tool count",               "186+ built-in",           "~200+",           "~150+ TS",          "~30 (GUI)"),
         ("AI providers",             "8+ (cloud + local)",      "6+",              "8+",                "5+"),
         ("Vector memory (LanceDB)",  "✓ SentenceTransformers",  "✓",               "✓",                 "✓"),
         ("Obsidian vault sync",      "✓ Full read/write",       "✗",               "✗",                 "✗"),
@@ -2066,8 +2073,8 @@ def build_comparison():
         ("Skill synthesizer",        "✓ Trajectory→Python fn",  "~",               "~",                 "✗"),
         ("Desktop computer use",     "✓ pyautogui + mss",       "~",               "~",                 "✓"),
         ("SWE agent loop",           "✓ Open→fix→test→PR",      "~",               "✓",                 "✗"),
-        ("Voice pipeline",           "✓ STT/TTS/VAD",           "✓",               "✓ streaming",       "✓ streaming"),
-        ("Multi-agent mesh",         "✓ /mesh parallel/auto",   "✓ ACP",           "✓ ACP",             "✗"),
+        ("Voice pipeline",           "✓ STT/TTS/VAD + Deepgram", "✓",              "✓ streaming",       "✓ streaming"),
+        ("Multi-agent mesh",         "✓ spawn_agent+self-correct","✓ ACP",          "✓ ACP",             "✗"),
         ("Browser automation",       "✓ 11 cmds Playwright",    "✓ CDP+stealth",   "✓ CDP+stealth",     "✓ Tauri/CDP"),
         ("Kanban board (SQLite)",     "✓ Full CRUD",             "✓ 10k+ LOC",      "~",                 "✗"),
         ("MCP server",               "✓ stdio + HTTP",          "✓",               "✓",                 "✓"),
@@ -2078,8 +2085,8 @@ def build_comparison():
         ("Claude Code-style TUI",    "✓ prompt_toolkit",        "✗",               "~",                 "✗"),
         ("macOS .app bundle",        "✓ PyInstaller",           "✗",               "✗",                 "✓ Tauri"),
         ("Windows .exe",             "✓ PyInstaller",           "✗",               "✗",                 "✓ Tauri"),
-        ("Test count",               "1,896 passing",           "~100,000+",       "~500,000+",         "~600"),
-        ("60+ slash commands",       "✓",                       "✓",               "✗ (extension UI)",  "✗"),
+        ("Test count",               "2,434 passing",           "~100,000+",       "~500,000+",         "~600"),
+        ("66+ slash commands",       "✓",                       "✓",               "✗ (extension UI)",  "✗"),
         ("Email draft (SMTP)",       "✓ email_draft (safe)",    "email_send !",    "~",                 "✗"),
         ("Scratchpad reasoning",     "✓ JSON-first",            "✓ Hermes format", "~",                 "✗"),
         ("Soul / persona system",    "✓ ~/.operon/SOUL.md",     "✓",               "~",                 "✗"),
@@ -2421,10 +2428,10 @@ def build_back_cover():
     elems.append(SP(6))
     elems.append(P("OPERON", "cover_title"))
     elems.append(SP(2))
-    elems.append(P("AI Terminal Cockpit  •  v3.1.0  •  Phase 11 Build", "cover_sub"))
+    elems.append(P("AI Terminal Cockpit  •  v3.1.0", "cover_sub"))
     elems.append(SP(4))
     elems.append(P(
-        "185+ Tools  •  8+ AI Providers  •  60+ Commands  •  1,896 Tests<br/>"
+        "186+ Tools  •  8+ AI Providers  •  66+ Commands  •  2,434 Tests<br/>"
         "MCP • SSH • Dashboard • Curator • Telegram • Docker",
         "cover_tagline"))
     elems.append(SP(4))

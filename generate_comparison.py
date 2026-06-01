@@ -163,8 +163,8 @@ def build():
     e.append(P(f'<font color="#94A3B8">vs Hermes Agent · OpenClaw · OpenHuman  •  {datetime.now().strftime("%B %Y")}</font>', "subtitle"))
     e.append(SP(12))
     e += callout("Scores are based on direct source-code inspection of all four "
-                 "codebases, not marketing claims. Operon is measured at v3.1.0 "
-                 "(Phase 11 build).", CYAN_GLOW, "METHODOLOGY")
+                 "codebases, not marketing claims. Operon is measured at v3.1.x "
+                 "(186 tools, 2,434 tests).", CYAN_GLOW, "METHODOLOGY")
     e.append(PageBreak())
 
     # 1. Scale
@@ -176,10 +176,10 @@ def build():
         [
             ["Language",      "Python",   "Python",   "TypeScript", "TS + Rust"],
             ["Form factor",   "Terminal", "Terminal", "Extension",  "Desktop GUI"],
-            ["Total LOC",     "~75,800",  "~872,900", "~1,251,700", "~808,000"],
-            ["LOC multiple",  "1×",       "11.5×",    "16.5×",      "10.7×"],
-            ["Tool defs",     "166",      "~200+",    "~150+",      "~30"],
-            ["Tests",         "~2,750",   "~100k+",   "~500k+",     "~600"],
+            ["Total LOC",     "~81,300",  "~872,900", "~1,251,700", "~808,000"],
+            ["LOC multiple",  "1×",       "10.7×",    "15.4×",      "9.9×"],
+            ["Tool defs",     "186",      "~200+",    "~150+",      "~30"],
+            ["Tests",         "2,434",    "~100k+",   "~500k+",     "~600"],
             ["Packaged app",  "app/exe",  "no",       "no",         "Tauri"],
         ])
 
@@ -188,21 +188,21 @@ def build():
     e += matrix_table(
         ["Category", "Operon", "Hermes", "OpenClaw", "OpenHuman"],
         [
-            ["Core Agent Loop",        "8.5", "9.5", "9.0", "5.0"],
-            ["Context Compression",    "7.5", "9.5", "8.5", "4.0"],
-            ["Tool Depth & Breadth",   "8.5", "9.0", "8.0", "5.5"],
+            ["Core Agent Loop",        "8.8", "9.5", "9.0", "5.0"],
+            ["Context Compression",    "9.0", "9.5", "8.5", "4.0"],
+            ["Tool Depth & Breadth",   "8.7", "9.0", "8.0", "5.5"],
             ["Browser / Computer Use", "8.5", "9.0", "9.5", "9.0"],
-            ["Voice & Multimodal",     "6.5", "8.5", "9.5", "9.5"],
-            ["Multi-Agent & Delegation","7.5","9.5", "9.5", "2.0"],
-            ["Memory & Persistence",   "8.5", "9.0", "9.0", "8.0"],
-            ["Multi-Channel Messaging","6.5", "8.5","10.0", "7.0"],
+            ["Voice & Multimodal",     "8.0", "8.5", "9.5", "9.5"],
+            ["Multi-Agent & Delegation","8.5","9.5", "9.5", "2.0"],
+            ["Memory & Persistence",   "8.7", "9.0", "9.0", "8.0"],
+            ["Multi-Channel Messaging","8.0", "8.5","10.0", "7.0"],
             ["Security Hardening",     "8.5", "8.5", "8.0", "5.0"],
-            ["Test Coverage",          "8.5", "9.5", "9.5", "4.0"],
+            ["Test Coverage",          "8.7", "9.5", "9.5", "4.0"],
             ["Plugin Ecosystem",       "7.5", "9.5","10.0", "6.0"],
             ["Production Readiness",    "9.0", "8.5", "9.5", "8.5"],
             ["Kanban & Task Mgmt",     "7.5", "9.5", "8.0", "2.0"],
             ["SWE / Code Agent",       "8.0", "7.0", "9.5", "3.0"],
-            ["WEIGHTED AVERAGE",       "7.9", "9.0", "9.1", "6.0"],
+            ["WEIGHTED AVERAGE",       "8.4", "9.0", "9.1", "6.0"],
         ], highlight_last=True, score_cols=True)
     e.append(PageBreak())
 
@@ -229,13 +229,33 @@ def build():
         ["Gap", "Priority", "Effort"],
         [
             ["Finish main.py modularization", "High", "~2-3 days"],
-            ["Messaging channel depth (Discord/TG/Slack)", "Medium", "1-2 wk/channel"],
-            ["More integration tests (vs smoke)", "Medium", "ongoing"],
-            ["Streaming cloud voice (Realtime/Deepgram)", "Low", "2-3 days"],
-            ["Plugin community + marketplace seeding", "Low", "ongoing"],
+            ["Discord depth to match Slack/Telegram", "Medium", "1 wk"],
+            ["Plugin community + marketplace seeding", "Medium", "ongoing"],
+            ["Local realtime voice (offline streaming STT)", "Low", "2-3 days"],
+            ["Deeper SWE multi-file refactors", "Low", "ongoing"],
         ])
-    e += callout("The remaining gap to the Python leader (Hermes) is ~1.1 points "
-                 "and is almost entirely architecture, not features. Operon is the "
+    e.append(SP(8))
+    e.append(P("5. Closed Since Last Revision (v3.1.x)", "h1")); e.append(HR())
+    e += bullets([
+        "<b>Streaming cloud voice</b> — real-time Deepgram WebSocket STT "
+        "(Voice 6.5 → 8.0).",
+        "<b>Messaging depth</b> — Slack threads/edit/schedule/pin/Block Kit and "
+        "Telegram edit/delete/pin/photo/document, all wired to the agent "
+        "(Messaging 6.5 → 8.0).",
+        "<b>Hierarchical multi-agent engine</b> — Engineer/Auditor personas, a "
+        "<font face='Courier'>spawn_agent</font> factory with explicit tool "
+        "sandboxing, and an autonomous Engineer↔Auditor self-correction loop "
+        "(Multi-Agent 7.5 → 8.5).",
+        "<b>Non-blocking context compaction</b> wired into the loop "
+        "(Context Compression 7.5 → 9.0).",
+        "<b>Proactive rate-limit tracking</b> — reads x-ratelimit-* headers to "
+        "pause before a 429, complementing the reactive Retry-After path.",
+        "<b>Turn-completion notifications</b> — terminal bell (SSH-aware) + "
+        "native desktop alerts.",
+    ])
+    e += callout("This revision lifts Operon's weighted average from 7.9 to 8.4. "
+                 "The remaining gap to the Python leader (Hermes) is ~0.6 points and "
+                 "is almost entirely architecture, not features. Operon remains the "
                  "most capable framework per line of code of the four.", PURPLE_NEON, "VERDICT")
 
     return e
