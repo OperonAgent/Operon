@@ -161,21 +161,49 @@ class MemoryPipeline:
             ts = _now()
             with self._lock:
                 with self._conn() as c:
+                    # Normalised dedup (harvested from Hermes fact-extraction):
+                    # collapse case/whitespace/punctuation-equivalent facts AND
+                    # containment duplicates, so long sessions don't accumulate
+                    # "User likes Python" / "user likes python." as separate rows.
+                    existing = [
+                        r[0] for r in c.execute(
+                            "SELECT content FROM memories ORDER BY id DESC LIMIT 1000"
+                        ).fetchall()
+                    ]
+                    norm_existing = [self._normalize_fact(e) for e in existing]
                     for m in new_mems:
-                        exists = c.execute(
-                            "SELECT id FROM memories "
-                            "WHERE LOWER(SUBSTR(content,1,60))=LOWER(SUBSTR(?,1,60))",
-                            (m["content"],),
-                        ).fetchone()
-                        if not exists:
-                            c.execute(
-                                "INSERT INTO memories(type,content,tags,importance,"
-                                "created_at,accessed_at) VALUES(?,?,?,?,?,?)",
-                                (m["type"], m["content"], m.get("tags", ""),
-                                 m.get("importance", 3), ts, ts),
-                            )
+                        nf = self._normalize_fact(m["content"])
+                        if not nf:
+                            continue
+                        is_dup = any(
+                            nf == ne or (len(nf) > 12 and (nf in ne or ne in nf))
+                            for ne in norm_existing
+                        )
+                        if is_dup:
+                            continue
+                        c.execute(
+                            "INSERT INTO memories(type,content,tags,importance,"
+                            "created_at,accessed_at) VALUES(?,?,?,?,?,?)",
+                            (m["type"], m["content"], m.get("tags", ""),
+                             m.get("importance", 3), ts, ts),
+                        )
+                        norm_existing.append(nf)   # dedup within this batch too
 
     # ── Extraction helpers ────────────────────────────────────────────────────
+
+    @staticmethod
+    def _normalize_fact(text: str) -> str:
+        """
+        Canonicalise a fact for dedup: lowercase, strip a small set of leading
+        filler phrases ("the user", "i", "my"), collapse whitespace, and drop
+        trailing punctuation. Two facts with the same normal form are treated as
+        duplicates. Harvested from Hermes Agent's memory-compaction approach.
+        """
+        s = (text or "").strip().lower()
+        s = re.sub(r"\s+", " ", s)
+        s = re.sub(r"^(the user|user|i|my|we|our)\b['s]*\s+", "", s)
+        s = s.strip(" .,:;!-—–\"'")
+        return s
 
     def _extract(self, text: str) -> list[dict]:
         found = []
@@ -191,8 +219,8 @@ class MemoryPipeline:
                     found.append({"type": "fact", "content": content, "importance": 2})
         seen, unique = set(), []
         for item in found:
-            key = item["content"][:60].lower()
-            if key not in seen:
+            key = self._normalize_fact(item["content"])
+            if key and key not in seen:
                 seen.add(key)
                 unique.append(item)
         return unique[:8]

@@ -279,7 +279,7 @@ class ModelRouter:
         payload = {
             "model":       model_id,
             "messages":    [{"role": "system", "content": system}] + messages,
-            "max_tokens":  4096,
+            "max_tokens":  self._config.get("max_response_tokens", 4096),
             "temperature": 0.2,
             "stream":      True,
         }
@@ -361,7 +361,7 @@ class ModelRouter:
 
         payload = {
             "model":      model_id,
-            "max_tokens": 4096,
+            "max_tokens": self._config.get("max_response_tokens", 4096),
             "system":     system_blocks,
             "messages":   cached_messages,
             "stream":     True,
@@ -444,7 +444,7 @@ class ModelRouter:
         payload: dict = {
             "model":      model_id,
             "messages":   [{"role": "system", "content": system}] + messages,
-            "max_tokens": 4096,
+            "max_tokens": self._config.get("max_response_tokens", 4096),
             "temperature": 0.2,
         }
 
@@ -496,7 +496,7 @@ class ModelRouter:
 
         payload = {
             "model":      model_id,
-            "max_tokens": 4096,
+            "max_tokens": self._config.get("max_response_tokens", 4096),
             "system":     system_blocks,
             "messages":   cached_messages,
         }

@@ -278,6 +278,8 @@ _TOOL_DEFINITIONS = [
             "file_pattern":   "string — glob filter e.g. '*.py', default '*' (optional)",
             "max_results":    "integer — max matches, default 50 (optional)",
             "context_lines":  "integer — extra context lines per match, default 0 (optional)",
+            "whole_word":     "boolean — match whole words only (grep -w), default false (optional)",
+            "files_with_matches": "boolean — return only filenames that contain a match (grep -l), default false (optional)",
         },
     },
     # ── Email ─────────────────────────────────────────────────────────────────

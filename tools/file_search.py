@@ -11,13 +11,16 @@ from pathlib import Path
 
 
 def file_search(
-    pattern: str,
+    pattern: str = "",
     path: str = ".",
     recursive: bool = True,
     case_sensitive: bool = False,
     file_pattern: str = "*",
     max_results: int = 50,
     context_lines: int = 0,
+    whole_word: bool = False,
+    files_with_matches: bool = False,
+    **_,
 ) -> dict:
     """
     Search file contents for a pattern.
@@ -34,9 +37,17 @@ def file_search(
     Returns:
         {success, matches: [{file, line_no, line, context_before, context_after}], total, error}
     """
+    # Safe fallbacks so a missing pattern/path never throws a raw trace.
+    if not pattern:
+        return {"success": False, "matches": [], "total": 0,
+                "error": "pattern is required."}
+    path = path or "."
+
     flags = 0 if case_sensitive else re.IGNORECASE
+    # whole_word wraps the pattern in word boundaries (grep -w semantics).
+    effective = rf"\b(?:{pattern})\b" if whole_word else pattern
     try:
-        regex = re.compile(pattern, flags)
+        regex = re.compile(effective, flags)
     except re.error as e:
         return {"success": False, "matches": [], "total": 0,
                 "error": f"Invalid regex: {e}"}
@@ -64,6 +75,14 @@ def file_search(
         try:
             lines = filepath.read_text(encoding="utf-8", errors="replace").splitlines()
         except Exception:
+            continue
+
+        # files_with_matches (grep -l): record the filename once and move on.
+        if files_with_matches:
+            if any(regex.search(ln) for ln in lines):
+                total += 1
+                if len(matches) < max_results:
+                    matches.append({"file": str(filepath)})
             continue
 
         for i, line in enumerate(lines):

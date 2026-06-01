@@ -67,6 +67,9 @@ _DEFAULTS = {
     "memory_enabled":    True,
     "max_tool_iters":    12,
     "request_timeout":   120,
+    # Max tokens the model may generate per response. Default 4096 (spacious,
+    # avoids truncating real output). Configurable so operators can tune it.
+    "max_response_tokens": 4096,
     # Turn-completion notifications (off by default; harvested from Hermes).
     "notify_on_complete": False,   # ring terminal bell when a turn finishes
     "notify_desktop":      False,  # also raise a native desktop notification

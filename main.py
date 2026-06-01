@@ -4376,6 +4376,17 @@ def run_agent_loop(
                 session.add_message("user", f"[SYSTEM_FEEDBACK] {_gr_post.message}")
                 print(theme.warning(f"  [Guardrail HALT] {_gr_post.message}"))
                 return
+            elif _is_tool_error:
+                # First failure on this call (guardrail not yet warning/halting):
+                # force an explicit tactical pivot keyed to THIS observation so the
+                # agent diagnoses the error instead of repeating the same call.
+                result_str += (
+                    "\n\n[Tactical pivot required: this tool call FAILED. Read the "
+                    "error above, then change strategy on the NEXT step — adjust the "
+                    "arguments, run one small diagnostic, or switch to a different "
+                    "tool. Do NOT repeat the same call unchanged, and do NOT fall "
+                    "back to a text-only reply; keep using tools to make progress.]"
+                )
 
             session.add_message("assistant", json.dumps(parsed, ensure_ascii=False))
 
