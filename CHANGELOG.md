@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — 3.1.x — Competitiveness pass
 
+### Added — Hierarchical multi-agent orchestration
+- **Worker-tier personas** in `core/multi_agent.py`: `AgentRole.ENGINEER`
+  (execution: file edits + code sandbox, steered to minimal diffs) and
+  `AgentRole.AUDITOR` (cynical QA: linters/tests/logs/vuln review, with **no
+  write tools** so its critique stays independent — constructive tension).
+- **`spawn_agent(persona, objective, allocated_tools)` meta-tool** — a
+  multi-agent factory that spins up a sandboxed worker restricted to exactly
+  the tools it's handed. Wired via `set_agent_factory` to an `AgentMesh`. Added
+  to `DELEGATE_BLOCKED_TOOLS` so workers can't recursively spawn (no fork bombs).
+- **Autonomous self-correction loop** — `AgentMesh.run_self_correction()` and
+  `/mesh fix <objective> [|| verify-cmd]`: Engineer drafts → verify (shell
+  command and/or Auditor verdict) → Auditor turns the fault log into explicit
+  fixes → Engineer applies them → re-verify, bounded by `max_rounds`.
+- Sub-agent loops now run with `core/tool_guardrails.py` active (per-worker
+  block/warn/halt) and hard sandbox enforcement, preventing multi-agent
+  infinite loops. 4096 max_tokens preserved across sub-agent calls.
+
+
+
 Real-engineering improvements raising Operon's depth in its weakest categories
 (context handling, voice, messaging, architecture). No cosmetic changes.
 

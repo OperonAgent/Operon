@@ -2919,9 +2919,10 @@ def handle_command(
                 "  /mesh parallel <task>    Run task with all specialist roles in parallel",
                 "  /mesh pipeline <task>    Run task through roles sequentially (each sees prior output)",
                 "  /mesh auto <task>        PLANNER decomposes task then auto-executes steps",
+                "  /mesh fix <objective>    Engineer<->Auditor self-correction loop until it verifies",
                 "  /mesh roles              List available agent roles",
                 "---",
-                "  Roles: RESEARCHER · CODER · ANALYST · WRITER · REVIEWER · PLANNER",
+                "  Roles: RESEARCHER · ENGINEER · AUDITOR · CODER · ANALYST · WRITER · REVIEWER · PLANNER",
             ]))
             return
 
@@ -2929,6 +2930,8 @@ def handle_command(
             print(theme.box([
                 "  MESH AGENT ROLES", "---",
                 "  RESEARCHER  — web search, fact gathering, source verification",
+                "  ENGINEER    — execution: local file edits + code sandbox (minimal diffs)",
+                "  AUDITOR     — cynical QA: linters, tests, logs, vuln scan (no write tools)",
                 "  CODER       — code generation, debugging, refactoring",
                 "  ANALYST     — data analysis, pattern detection, reporting",
                 "  WRITER      — drafting, editing, documentation",
@@ -2958,6 +2961,15 @@ def handle_command(
                 _roles = [AgentRole.PLANNER, AgentRole.RESEARCHER,
                           AgentRole.CODER, AgentRole.REVIEWER]
                 result = _mesh.run_pipeline(task, roles=_roles)
+            elif sub == "fix":
+                # Autonomous self-correction: Engineer drafts, Auditor reviews
+                # the fault, Engineer applies fixes — loop until it verifies.
+                # Optional "<objective> || <verify shell command>" split.
+                _objective, _, _verify = task.partition("||")
+                result = _mesh.run_self_correction(
+                    objective=_objective.strip(),
+                    verify_cmd=_verify.strip(),
+                )
             else:  # auto
                 result = _mesh.run_auto(task)
 
@@ -5166,6 +5178,32 @@ def main() -> None:
         return "(no response)"
 
     set_sub_agent_runner(_sub_agent_runner)
+
+    # ── Multi-agent factory: wire the spawn_agent meta-tool to an AgentMesh ─────
+    def _agent_factory(persona: str, objective: str, allocated_tools: list) -> dict:
+        """Spawn a sandboxed specialist worker via the AgentMesh."""
+        try:
+            from core.multi_agent import create_mesh
+            mesh = create_mesh(router=router, tool_registry=tool_registry)
+            res = mesh.run_with_tools(
+                persona=persona, objective=objective,
+                allocated_tools=allocated_tools or None,
+            )
+            return {
+                "success": res.success,
+                "persona": res.role.value,
+                "output":  res.output,
+                "error":   res.error or "",
+            }
+        except Exception as e:
+            return {"success": False, "persona": persona, "output": None, "error": str(e)}
+
+    try:
+        from tools.registry import set_agent_factory
+        set_agent_factory(_agent_factory)
+    except Exception:
+        pass
+
     scheduler.set_runner(_sub_agent_runner)
     scheduler.start()
 

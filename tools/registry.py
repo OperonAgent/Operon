@@ -1502,6 +1502,22 @@ _TOOL_DEFINITIONS = [
             "prompt": "string — the complete task prompt for the sub-agent (required)",
         },
     },
+    {
+        "name": "spawn_agent",
+        "description": (
+            "Spawn a SANDBOXED specialist worker with an explicit tool allocation "
+            "(the multi-agent factory). Pick a persona and hand it ONLY the tools "
+            "it needs — e.g. a 'researcher' for web/read tools, an 'engineer' for "
+            "file-edit/code tools, an 'auditor' for lint/test/log review (no write "
+            "tools). The worker runs its own bounded, guardrailed tool loop and "
+            "returns a report. Use this to decompose a large task across workers."
+        ),
+        "params": {
+            "persona":         "string — researcher | engineer | auditor | analyst | writer | reviewer | planner | coder | generalist (required)",
+            "objective":       "string — what the worker must accomplish (required)",
+            "allocated_tools": "array — explicit tool names the worker may use; omit to use the persona's default toolset (optional)",
+        },
+    },
     # ── LLM task (in-band sub-call) ───────────────────────────────────────────
     {
         "name": "llm_task",
@@ -2280,6 +2296,8 @@ _DISPATCH: dict[str, Callable] = {
 }
 
 _sub_agent_runner: Optional[Callable[[str], None]] = None
+# Factory hook for the spawn_agent meta-tool: (persona, objective, allocated_tools) -> dict
+_agent_factory: Optional[Callable[[str, str, list], dict]] = None
 
 # Tools that sub-agents (delegated workers) must NOT call:
 #   sub_agent / delegate_task / delegate_batch — no recursive delegation
@@ -2290,6 +2308,7 @@ DELEGATE_BLOCKED_TOOLS: frozenset[str] = frozenset({
     "sub_agent",
     "delegate_task",
     "delegate_batch",
+    "spawn_agent",      # no recursive worker spawning (prevents fork bombs)
     "clarify",
     "email_draft",
     "computer_use",
@@ -2322,6 +2341,52 @@ def _sub_agent(prompt: str, **_) -> dict:
 
 
 _DISPATCH["sub_agent"] = _sub_agent
+
+
+def set_agent_factory(factory: Callable[[str, str, list], dict]) -> None:
+    """Wire the spawn_agent meta-tool to an AgentMesh-backed factory."""
+    global _agent_factory
+    _agent_factory = factory
+
+
+def spawn_agent(persona: str = "generalist", objective: str = "",
+                allocated_tools: Any = None, **_) -> dict:
+    """
+    Spawn a sandboxed specialist sub-agent (the multi-agent factory meta-tool).
+
+    Args:
+        persona         — worker role: 'researcher' | 'engineer' | 'auditor' |
+                          'analyst' | 'writer' | 'reviewer' | 'planner' |
+                          'coder' | 'generalist' (or free-text description).
+        objective       — what the worker must accomplish (required).
+        allocated_tools — explicit list (or comma-separated string) of tool names
+                          the worker may use. The worker is hard-sandboxed to this
+                          set; omit it to use the persona's default toolset.
+
+    Returns:
+        {success, persona, output, error}
+    """
+    objective = (objective or "").strip()
+    if not objective:
+        return {"success": False, "persona": persona,
+                "output": None, "error": "objective is required."}
+    if _agent_factory is None:
+        return {"success": False, "persona": persona,
+                "output": None, "error": "Agent factory not wired up."}
+    # Normalise allocated_tools to a list; tolerate None / str / list gracefully.
+    if isinstance(allocated_tools, str):
+        allocated_tools = [t.strip() for t in allocated_tools.split(",") if t.strip()]
+    elif not isinstance(allocated_tools, list):
+        allocated_tools = []
+    # Defensive sandbox: a spawned worker can never receive delegate/spawn tools.
+    allocated_tools = [t for t in allocated_tools if t not in DELEGATE_BLOCKED_TOOLS]
+    try:
+        return _agent_factory(persona or "generalist", objective, allocated_tools)
+    except Exception as e:
+        return {"success": False, "persona": persona, "output": None, "error": str(e)}
+
+
+_DISPATCH["spawn_agent"] = spawn_agent
 
 
 # ── Toolset groups ────────────────────────────────────────────────────────────
@@ -2367,7 +2432,7 @@ TOOLSETS: dict[str, list[str]] = {
     "cloud":       ["modal_run", "modal_status", "daytona_run", "daytona_list_workspaces"],
     "macros":      ["macro_save", "macro_delete", "macro_list", "run_macro"],
     "goals":       ["goal_set", "goal_update", "goal_list", "goal_complete", "goal_delete"],
-    "agent":       ["sub_agent", "todo", "clarify"],
+    "agent":       ["sub_agent", "spawn_agent", "todo", "clarify"],
 }
 
 # Tools disabled in the current session (populated by enable/disable commands)

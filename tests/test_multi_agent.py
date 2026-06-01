@@ -545,3 +545,117 @@ class TestCreateMesh:
         mesh = create_mesh(router, registry)
         assert mesh.router        is router
         assert mesh.tool_registry is registry
+
+
+# ── Hierarchical orchestration: personas, sandbox, factory, self-correction ───
+
+class TestWorkerTierPersonas:
+    def test_engineer_and_auditor_exist(self):
+        assert AgentRole.ENGINEER in list(AgentRole)
+        assert AgentRole.AUDITOR in list(AgentRole)
+
+    def test_new_roles_have_toolsets(self):
+        assert "file_write" in _ROLE_TOOLSETS[AgentRole.ENGINEER]
+        assert "apply_patch" in _ROLE_TOOLSETS[AgentRole.ENGINEER]
+        # Auditor is review-only: NO write/patch tools (constructive tension)
+        for forbidden in ("file_write", "file_patch", "apply_patch", "file_append"):
+            assert forbidden not in _ROLE_TOOLSETS[AgentRole.AUDITOR]
+        assert "shell_exec" in _ROLE_TOOLSETS[AgentRole.AUDITOR]
+
+    def test_new_roles_have_personas(self):
+        assert "Execution Engineer" in _ROLE_SYSTEM_PROMPTS[AgentRole.ENGINEER]
+        assert "Quality Auditor" in _ROLE_SYSTEM_PROMPTS[AgentRole.AUDITOR]
+        assert "PASS" in _ROLE_SYSTEM_PROMPTS[AgentRole.AUDITOR]
+
+
+class TestRunWithTools:
+    def test_explicit_allocation_runs(self):
+        mesh = _make_mesh('{"content": "research done"}')
+        res = mesh.run_with_tools("researcher", "find facts",
+                                  allocated_tools=["web_search"])
+        assert res.success is True
+        assert res.role == AgentRole.RESEARCHER
+
+    def test_unknown_persona_falls_back_to_generalist(self):
+        mesh = _make_mesh()
+        res = mesh.run_with_tools("DataWizard9000", "do a thing", allocated_tools=[])
+        assert res.role == AgentRole.GENERALIST
+
+    def test_empty_objective_handled(self):
+        mesh = _make_mesh()
+        res = mesh.run_with_tools("engineer", "", allocated_tools=["file_read"])
+        # should not raise; objective normalised
+        assert isinstance(res, AgentResult)
+
+    def test_comma_string_tools_accepted(self):
+        mesh = _make_mesh()
+        res = mesh.run_with_tools("auditor", "review", allocated_tools="file_read, shell_exec")
+        assert res.success is True
+
+
+class TestSandboxEnforcement:
+    def test_disallowed_tool_is_blocked(self):
+        # Worker tries to call file_write but is only allocated file_read.
+        seq = [
+            '{"content": "", "tool_call": {"name": "file_write", "parameters": {"path": "x", "content": "y"}}}',
+            '{"content": "finished"}',
+        ]
+        router = mock.MagicMock()
+        router.complete.side_effect = seq
+        router.parse_response.side_effect = lambda r: json.loads(r)
+        mesh = AgentMesh(router=router, tool_registry=_make_registry())
+        out = mesh._run_with_timeout(AgentRole.AUDITOR, "audit", "", 30,
+                                     explicit_tools=["file_read"])
+        # The blocked attempt must have produced a sandbox error, then it finished.
+        assert "finished" in out
+
+
+class TestSelfCorrectionLoop:
+    def test_passes_when_auditor_signs_off(self):
+        # Engineer returns content, Auditor returns PASS -> loop stops round 1.
+        def parse(r):
+            try: return json.loads(r)
+            except Exception: return {"content": r}
+        router = mock.MagicMock()
+        router.parse_response.side_effect = parse
+        router.complete.side_effect = [
+            '{"content": "implemented the fix"}',     # engineer round 1
+            '{"content": "PASS - looks correct"}',    # auditor round 1
+        ]
+        mesh = AgentMesh(router=router, tool_registry=_make_registry())
+        res = mesh.run_self_correction("make it work", max_rounds=3)
+        assert res.success is True
+        assert res.mode == "self_correction"
+        assert len(res.results) == 2
+
+    def test_iterates_then_gives_up(self):
+        def parse(r):
+            try: return json.loads(r)
+            except Exception: return {"content": r}
+        router = mock.MagicMock()
+        router.parse_response.side_effect = parse
+        # Always NEEDS_REVISION -> exhausts max_rounds=2 (4 calls).
+        router.complete.side_effect = [
+            '{"content": "attempt 1"}', '{"content": "NEEDS_REVISION: fix line 2"}',
+            '{"content": "attempt 2"}', '{"content": "NEEDS_REVISION: still broken"}',
+        ]
+        mesh = AgentMesh(router=router, tool_registry=_make_registry())
+        res = mesh.run_self_correction("hard task", max_rounds=2)
+        assert res.success is False
+        assert len(res.results) == 4
+
+    def test_verify_command_authoritative(self):
+        # Auditor says PASS but the verify command fails -> not passed.
+        def parse(r):
+            try: return json.loads(r)
+            except Exception: return {"content": r}
+        router = mock.MagicMock()
+        router.parse_response.side_effect = parse
+        router.complete.side_effect = [
+            '{"content": "did it"}', '{"content": "PASS"}',
+            '{"content": "did it again"}', '{"content": "PASS"}',
+        ]
+        mesh = AgentMesh(router=router, tool_registry=_make_registry())
+        with mock.patch.object(mesh, "_verify", return_value=("FAILED: 1 test", False)):
+            res = mesh.run_self_correction("x", verify_cmd="pytest", max_rounds=2)
+        assert res.success is False

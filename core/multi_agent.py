@@ -57,6 +57,9 @@ class AgentRole(str, Enum):
     REVIEWER   = "reviewer"
     PLANNER    = "planner"
     GENERALIST = "generalist"
+    # Hierarchical worker tier (constructive-tension trio)
+    ENGINEER   = "engineer"   # The Execution Engineer — local file edit + code sandbox
+    AUDITOR    = "auditor"    # The Quality Auditor — cynical review, linters, vuln scan
 
 
 # Toolsets each role gets access to
@@ -71,6 +74,16 @@ _ROLE_TOOLSETS: Dict[AgentRole, List[str]] = {
     AgentRole.REVIEWER:   ["file_read", "web_search"],
     AgentRole.PLANNER:    ["file_read", "file_write"],
     AgentRole.GENERALIST: [],  # filled with "default" toolset at runtime
+    # Execution Engineer — can read/write/patch files and run code in the sandbox,
+    # but is steered (by persona) toward minimal, reviewable diffs.
+    AgentRole.ENGINEER:   ["file_read", "file_write", "file_append", "file_patch",
+                           "apply_patch", "dir_list", "file_search", "code_exec",
+                           "shell_exec", "git_diff", "git_status"],
+    # Quality Auditor — read-only-leaning: inspects code, runs linters/tests via
+    # shell, greps logs, and diffs. Deliberately has NO write/patch tools so its
+    # review stays independent of the Engineer's edits (constructive tension).
+    AgentRole.AUDITOR:    ["file_read", "file_search", "dir_list", "shell_exec",
+                           "code_exec", "git_diff", "git_status"],
 }
 
 # System prompt per role
@@ -119,6 +132,33 @@ _ROLE_SYSTEM_PROMPTS: Dict[AgentRole, str] = {
     AgentRole.GENERALIST: (
         "You are a general-purpose agent. Complete the given task using any "
         "available tools. Think step-by-step and verify your work."
+    ),
+    AgentRole.ENGINEER: (
+        "You are the Execution Engineer in a hierarchical engineering team. "
+        "Your job is to implement the objective by editing local files and "
+        "running code in the sandbox. Work in SMALL, reviewable steps: read the "
+        "relevant code first, make the minimal change that satisfies the "
+        "objective, then run/compile it to confirm it works. Preserve existing "
+        "style and never make sweeping unrelated edits. "
+        "A cynical Quality Auditor WILL review your work and send back explicit "
+        "fix instructions — when you receive auditor feedback, apply exactly the "
+        "requested fixes and re-verify, do not argue or expand scope. "
+        "When the change compiles/tests clean, summarise precisely what you "
+        "changed and which files you touched."
+    ),
+    AgentRole.AUDITOR: (
+        "You are the Quality Auditor — a deliberately cynical, detail-obsessed "
+        "reviewer. You did NOT write the code, and you assume it is broken until "
+        "proven otherwise. Your job is to find what is wrong: run linters and "
+        "tests via the shell, read the fault logs, grep for error patterns, and "
+        "inspect diffs. Look specifically for: compile/lint errors, failing "
+        "tests, unhandled exceptions, security issues (injection, secrets, unsafe "
+        "shell), missing edge cases, and silent failures. "
+        "You have NO file-write tools on purpose — you critique, you do not patch. "
+        "Return a verdict line of exactly PASS, NEEDS_REVISION, or FAIL, followed "
+        "by a numbered list of CONCRETE fix instructions the Execution Engineer "
+        "can act on directly (file + what to change + why). If it genuinely "
+        "passes, say PASS and stop."
     ),
 }
 
@@ -386,25 +426,203 @@ class AgentMesh:
         mesh_result.success    = any(r.success for r in mesh_result.results)
         return mesh_result
 
+    # ── Agent factory: spawn a worker with an explicit tool allocation ─────────
+
+    def run_with_tools(
+        self,
+        persona:         str,
+        objective:       str,
+        allocated_tools: Optional[List[str]] = None,
+        context:         str = "",
+        timeout:         int = 120,
+    ) -> AgentResult:
+        """
+        Spawn a sandboxed sub-agent for *objective*, restricted to exactly
+        *allocated_tools*. This is the runtime behind the ``spawn_agent`` meta-tool.
+
+        *persona* may be a role name ("engineer", "auditor", "researcher", …) or
+        free text. A recognised role supplies its persona prompt and — when no
+        tools are explicitly allocated — its default toolset. Unknown personas
+        fall back to the generalist prompt.
+
+        All arguments degrade gracefully: a missing/empty tool list falls back to
+        the persona's role toolset (or the default set), so the factory never
+        raises on sparse input.
+        """
+        objective = (objective or "").strip() or "(no objective provided)"
+        try:
+            role = AgentRole((persona or "").strip().lower())
+        except (ValueError, AttributeError):
+            role = AgentRole.GENERALIST
+
+        # Normalise the allocation: accept list, comma string, or None.
+        if isinstance(allocated_tools, str):
+            allocated_tools = [t.strip() for t in allocated_tools.split(",") if t.strip()]
+        explicit = [t for t in (allocated_tools or []) if t]
+
+        # If persona was free text (not a role) keep its description as a prefix.
+        extra_context = context
+        if role is AgentRole.GENERALIST and persona and persona.strip().lower() not in {r.value for r in AgentRole}:
+            extra_context = (f"You are acting as: {persona}.\n\n" + context).strip()
+
+        start = time.monotonic()
+        try:
+            output = self._run_with_timeout(
+                role, objective, extra_context, timeout,
+                explicit_tools=explicit or None,
+            )
+            return AgentResult(role=role, task=objective, output=output,
+                               success=True, duration_s=time.monotonic() - start)
+        except Exception as e:
+            return AgentResult(role=role, task=objective, output="", success=False,
+                               error=str(e), duration_s=time.monotonic() - start)
+
+    # ── Autonomous self-correction: Engineer ⇄ Auditor loop ────────────────────
+
+    def run_self_correction(
+        self,
+        objective:  str,
+        verify_cmd: str = "",
+        context:    str = "",
+        max_rounds: int = 3,
+        timeout_per_step: int = 150,
+    ) -> MeshResult:
+        """
+        Drive an autonomous fix loop:
+
+            Engineer drafts/edits → verify (shell command or Auditor review) →
+            if it fails, the Auditor turns the fault log into explicit fix
+            instructions → Engineer applies them → re-verify. Repeat until the
+            objective verifies clean or *max_rounds* is reached.
+
+        Args:
+            objective:  What the Engineer must accomplish.
+            verify_cmd: Optional shell command whose exit code / output decides
+                        pass/fail (e.g. "python -m pytest -q"). When empty, the
+                        Auditor's PASS/FAIL verdict is used instead.
+            max_rounds: Hard cap on Engineer⇄Auditor iterations (anti-infinite-loop).
+
+        Returns:
+            MeshResult with one AgentResult per Engineer/Auditor turn and a
+            synthesis describing the final state.
+        """
+        objective = (objective or "").strip() or "(no objective provided)"
+        max_rounds = max(1, int(max_rounds or 1))
+        mesh = MeshResult(task=objective, mode="self_correction")
+        auditor_feedback = ""
+        passed = False
+
+        for rnd in range(1, max_rounds + 1):
+            # 1) Engineer implements (or applies the auditor's fixes).
+            eng_task = objective if rnd == 1 else (
+                f"{objective}\n\nThe Quality Auditor reviewed the previous attempt "
+                f"and returned these required fixes — apply them exactly:\n{auditor_feedback}"
+            )
+            eng = self.run_agent(AgentRole.ENGINEER, eng_task, context=context,
+                                 timeout=timeout_per_step)
+            mesh.results.append(eng)
+            if not eng.success:
+                mesh.synthesis = f"Engineer failed on round {rnd}: {eng.error}"
+                break
+
+            # 2) Verify — prefer a concrete command, else fall back to the Auditor.
+            verify_report, verify_ok = self._verify(verify_cmd)
+
+            # 3) Auditor review (always runs; sees code + any verify output).
+            audit_task = (
+                f"Review the Execution Engineer's work for this objective:\n{objective}\n\n"
+                f"Engineer's report:\n{eng.output[:2000]}\n\n"
+                + (f"Verification command `{verify_cmd}` output:\n{verify_report[:2000]}\n\n"
+                   if verify_cmd else "")
+                + "Give your verdict (PASS / NEEDS_REVISION / FAIL) and concrete fixes."
+            )
+            audit = self.run_agent(AgentRole.AUDITOR, audit_task, timeout=timeout_per_step)
+            mesh.results.append(audit)
+            auditor_feedback = audit.output
+
+            verdict_pass = "PASS" in (audit.output or "").upper()[:400] and \
+                "NEEDS_REVISION" not in (audit.output or "").upper()[:400] and \
+                "FAIL" not in (audit.output or "").upper()[:400]
+
+            # Pass when either the command verifies clean (if provided) AND/OR the
+            # auditor signs off. A concrete verify_cmd is authoritative when present.
+            if verify_cmd:
+                passed = verify_ok and verdict_pass
+            else:
+                passed = verdict_pass
+
+            if passed:
+                mesh.synthesis = (
+                    f"Verified clean after {rnd} round(s).\n\n"
+                    f"Final engineer report:\n{eng.output[:1500]}"
+                )
+                break
+            mesh.synthesis = (
+                f"Did not verify after {rnd} round(s). Latest auditor feedback:\n"
+                f"{auditor_feedback[:1500]}"
+            )
+
+        mesh.success = passed
+        return mesh
+
+    def _verify(self, verify_cmd: str) -> tuple:
+        """Run an optional verification command; return (report, ok)."""
+        if not verify_cmd:
+            return "", True
+        try:
+            from tools.registry import _DISPATCH
+            fn = _DISPATCH.get("shell_exec")
+            if not fn:
+                return "[verify] shell_exec unavailable", False
+            res = fn(command=verify_cmd)
+            if isinstance(res, dict):
+                rc = res.get("exit_code", res.get("returncode", 0))
+                out = (str(res.get("stdout", "")) + "\n" + str(res.get("stderr", ""))).strip()
+                return out, (rc == 0)
+            return str(res), True
+        except Exception as e:
+            return f"[verify] command raised: {e}", False
+
     # ── Internal helpers ──────────────────────────────────────────────────────
 
     def _run_with_timeout(
-        self, role: AgentRole, task: str, context: str, timeout: int
+        self, role: AgentRole, task: str, context: str, timeout: int,
+        explicit_tools: Optional[List[str]] = None,
     ) -> str:
-        """Run a sub-agent with its own tool loop and return the final answer."""
+        """
+        Run a sub-agent with its own tool loop and return the final answer.
+
+        If *explicit_tools* is given, the sub-agent is sandboxed to exactly that
+        tool list (intersected with what's registered, minus the always-blocked
+        delegate tools). Otherwise it falls back to the role's default toolset.
+        A per-sub-agent ToolCallGuardrails instance is active so a worker can't
+        get stuck in an infinite tool-calling loop.
+        """
         from tools.registry import _DISPATCH, _TOOL_DEFINITIONS, TOOLSETS, DELEGATE_BLOCKED_TOOLS
 
-        # Build toolset for this role
-        role_tools = _ROLE_TOOLSETS.get(role, [])
+        # Build toolset: explicit allocation wins; else fall back to role default.
+        if explicit_tools:
+            role_tools = [t for t in explicit_tools if t]   # drop empties gracefully
+        else:
+            role_tools = _ROLE_TOOLSETS.get(role, [])
         if not role_tools:
-            # Generalist: use default toolset
+            # Generalist / empty allocation: use default toolset
             role_tools = list(TOOLSETS.get("default", {}).keys() if hasattr(TOOLSETS.get("default", {}), "keys") else TOOLSETS.get("default", []))
 
+        allowed_names = set(role_tools)
         allowed_tools = [
             td for td in _TOOL_DEFINITIONS
-            if td["name"] in role_tools
+            if td["name"] in allowed_names
             and td["name"] not in DELEGATE_BLOCKED_TOOLS
         ]
+
+        # Per-sub-agent loop guardrails (anti-infinite-loop, shared design with
+        # the primary agent loop in main.py).
+        try:
+            from core.tool_guardrails import ToolCallGuardrails
+            guardrail = ToolCallGuardrails()
+        except Exception:
+            guardrail = None
 
         system = _ROLE_SYSTEM_PROMPTS.get(role, _ROLE_SYSTEM_PROMPTS[AgentRole.GENERALIST])
         if context:
@@ -456,6 +674,27 @@ class AgentMesh:
             tool_name   = tool_call.get("name", "")
             tool_params = tool_call.get("parameters", {}) or {}
 
+            # Sandbox enforcement: a worker may ONLY call tools in its allocation.
+            if tool_name not in allowed_names:
+                tool_result_str = (
+                    f"[Error] Tool '{tool_name}' is not in this agent's allocated "
+                    f"toolset. Allowed: {', '.join(sorted(allowed_names)) or '(none)'}."
+                )
+                messages.append({"role": "assistant", "content": raw})
+                messages.append({"role": "user", "content": f"[TOOL_RESULT: {tool_name}]\n{tool_result_str}"})
+                continue
+
+            # Guardrail: block before executing if this looks like a loop.
+            if guardrail is not None:
+                pre = guardrail.before_call(tool_name, tool_params)
+                if pre.should_block:
+                    messages.append({"role": "assistant", "content": raw})
+                    messages.append({"role": "user", "content": f"[TOOL_RESULT: {tool_name}]\n{pre.synthetic_result()}"})
+                    if pre.action == "halt":
+                        output = output or pre.message
+                        break
+                    continue
+
             if tool_name in DELEGATE_BLOCKED_TOOLS:
                 tool_result_str = f"[Error] Tool '{tool_name}' is not available in sub-agents."
             else:
@@ -468,6 +707,17 @@ class AgentMesh:
                         tool_result_str = f"[Error] Unknown tool: {tool_name}"
                 except Exception as e:
                     tool_result_str = f"[Error] Tool {tool_name} failed: {e}"
+
+            # Guardrail: record the result; append loop-warning guidance if any.
+            if guardrail is not None:
+                post = guardrail.after_call(tool_name, tool_params, tool_result_str)
+                if post.action in ("warn", "halt"):
+                    tool_result_str += post.guidance_suffix()
+                if post.action == "halt":
+                    messages.append({"role": "assistant", "content": raw})
+                    messages.append({"role": "user", "content": f"[TOOL_RESULT: {tool_name}]\n{tool_result_str}"})
+                    output = output or f"[{role.value}] Halted: repeated non-progressing tool calls."
+                    break
 
             # Truncate large tool outputs
             if len(tool_result_str) > 4000:
