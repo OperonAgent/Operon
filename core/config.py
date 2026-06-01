@@ -67,6 +67,10 @@ _DEFAULTS = {
     "memory_enabled":    True,
     "max_tool_iters":    12,
     "request_timeout":   120,
+    # Turn-completion notifications (off by default; harvested from Hermes).
+    "notify_on_complete": False,   # ring terminal bell when a turn finishes
+    "notify_desktop":      False,  # also raise a native desktop notification
+    "notify_min_seconds":  0,      # only notify for turns at least this long
     "model_profiles":    DEFAULT_PROFILES,
     "api_keys":          {
         "openai":     "",

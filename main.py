@@ -5387,6 +5387,7 @@ def main() -> None:
 
         session.add_message("user", user_input)
         _tui.set_status("thinking…")
+        _turn_start = time.time()
         try:
             run_agent_loop(
                 session=session, router=router, planner=planner,
@@ -5397,6 +5398,13 @@ def main() -> None:
                 intended_recipient=_intended_recipient,
             )
             _turn_count += 1
+            # Turn-completion notification (bell / desktop) — config-gated no-op.
+            try:
+                from core.notify import notify_complete
+                notify_complete(config, message="Operon finished your request.",
+                                elapsed=time.time() - _turn_start)
+            except Exception:
+                pass
             # Sync cost into TUI status bar
             if cost_tracker and hasattr(cost_tracker, "_total_usd"):
                 _tui.set_cost(cost_tracker._total_usd)

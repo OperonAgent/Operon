@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — 3.1.x — Competitiveness pass
 
+### Added — Turn-completion notifications (harvested from Hermes)
+- **`core/notify.py`**: rings the terminal bell (`\a`, propagates over SSH) and
+  optionally raises a native desktop notification (macOS `osascript`, Linux
+  `notify-send`, Windows PowerShell toast) when a turn finishes. Best-effort and
+  config-gated — never raises, no-op unless enabled.
+- Config keys `notify_on_complete` / `notify_desktop` / `notify_min_seconds`
+  (the last suppresses alerts for quick turns).
+- **`/notify on | off | desktop | test`** command; wired into the REPL turn
+  boundary (interactive only — sub-agents stay silent).
+
 ### Added — Hierarchical multi-agent orchestration
 - **Worker-tier personas** in `core/multi_agent.py`: `AgentRole.ENGINEER`
   (execution: file edits + code sandbox, steered to minimal diffs) and
