@@ -899,3 +899,85 @@ def telegram_get_updates(
             for u in updates
         ],
     }
+
+
+def _tg_token(token: Optional[str]) -> str:
+    return token or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+
+
+def _tg_chat(chat_id: Optional[Union[int, str]]) -> str:
+    return str(chat_id) if chat_id else os.environ.get("TELEGRAM_CHAT_ID", "")
+
+
+def _tg_result(resp: Optional[Dict]) -> Dict[str, Any]:
+    """Normalise a Bot API response into the registry result shape."""
+    if not resp:
+        return {"success": False, "error": "no response from Telegram API"}
+    if not resp.get("ok", False):
+        return {"success": False, "error": resp.get("description", "telegram error")}
+    res = resp.get("result", {})
+    out: Dict[str, Any] = {"success": True, "error": ""}
+    if isinstance(res, dict) and "message_id" in res:
+        out["message_id"] = res["message_id"]
+    return out
+
+
+def telegram_edit_message(text: str = "", chat_id: Optional[Union[int, str]] = None,
+                          message_id: int = 0, token: Optional[str] = None,
+                          **_: Any) -> Dict[str, Any]:
+    """Edit the text of a message the bot previously sent."""
+    tok, cid = _tg_token(token), _tg_chat(chat_id)
+    if not tok:
+        return {"success": False, "error": "TELEGRAM_BOT_TOKEN not set"}
+    if not cid or not message_id:
+        return {"success": False, "error": "chat_id and message_id are required"}
+    return _tg_result(TelegramBot(token=tok).edit_message(cid, int(message_id), text))
+
+
+def telegram_delete_message(chat_id: Optional[Union[int, str]] = None,
+                            message_id: int = 0, token: Optional[str] = None,
+                            **_: Any) -> Dict[str, Any]:
+    """Delete a message by id."""
+    tok, cid = _tg_token(token), _tg_chat(chat_id)
+    if not tok:
+        return {"success": False, "error": "TELEGRAM_BOT_TOKEN not set"}
+    if not cid or not message_id:
+        return {"success": False, "error": "chat_id and message_id are required"}
+    return _tg_result(TelegramBot(token=tok).delete_message(cid, int(message_id)))
+
+
+def telegram_pin_message(chat_id: Optional[Union[int, str]] = None,
+                         message_id: int = 0, notify: bool = False,
+                         token: Optional[str] = None, **_: Any) -> Dict[str, Any]:
+    """Pin a message in a chat (optionally with notification)."""
+    tok, cid = _tg_token(token), _tg_chat(chat_id)
+    if not tok:
+        return {"success": False, "error": "TELEGRAM_BOT_TOKEN not set"}
+    if not cid or not message_id:
+        return {"success": False, "error": "chat_id and message_id are required"}
+    return _tg_result(TelegramBot(token=tok).pin_message(cid, int(message_id), notify=notify))
+
+
+def telegram_send_photo(photo: str = "", caption: str = "",
+                        chat_id: Optional[Union[int, str]] = None,
+                        token: Optional[str] = None, **_: Any) -> Dict[str, Any]:
+    """Send a photo by URL or Telegram file_id."""
+    tok, cid = _tg_token(token), _tg_chat(chat_id)
+    if not tok:
+        return {"success": False, "error": "TELEGRAM_BOT_TOKEN not set"}
+    if not cid or not photo:
+        return {"success": False, "error": "chat_id and photo (URL or file_id) are required"}
+    return _tg_result(TelegramBot(token=tok).send_photo(cid, photo, caption=caption))
+
+
+def telegram_send_document(document: str = "", filename: str = "file.txt",
+                           caption: str = "", chat_id: Optional[Union[int, str]] = None,
+                           token: Optional[str] = None, **_: Any) -> Dict[str, Any]:
+    """Send a document by local path, URL, or file_id."""
+    tok, cid = _tg_token(token), _tg_chat(chat_id)
+    if not tok:
+        return {"success": False, "error": "TELEGRAM_BOT_TOKEN not set"}
+    if not cid or not document:
+        return {"success": False, "error": "chat_id and document are required"}
+    return _tg_result(TelegramBot(token=tok).send_document(
+        cid, document, filename=filename, caption=caption))

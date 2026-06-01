@@ -53,6 +53,10 @@ from tools.computer_use import computer_use
 from tools.delegate     import delegate_task, delegate_batch
 from tools.vision      import vision_analyze, image_generate, tts_speak
 from tools.messaging   import telegram_send, clarify, todo
+from tools.telegram_ops import (
+    telegram_get_updates, telegram_edit_message, telegram_delete_message,
+    telegram_pin_message, telegram_send_photo, telegram_send_document,
+)
 from tools.ssh_exec    import ssh_exec, ssh_upload, ssh_download
 from tools.knowledge_ops import (
     knowledge_set, knowledge_get, knowledge_delete, knowledge_list,
@@ -677,6 +681,58 @@ _TOOL_DEFINITIONS = [
             "chat_id":    "string — Telegram chat ID or @username (required)",
             "text":       "string — message body, Markdown supported (required)",
             "parse_mode": "string — 'Markdown' | 'HTML' | '', default 'Markdown' (optional)",
+        },
+    },
+    {
+        "name": "telegram_get_updates",
+        "description": "Fetch recent inbound Telegram updates (messages). Requires TELEGRAM_BOT_TOKEN.",
+        "params": {
+            "limit": "integer — max updates to fetch (optional, default 10)",
+        },
+    },
+    {
+        "name": "telegram_edit_message",
+        "description": "Edit the text of a message the bot previously sent. Requires TELEGRAM_BOT_TOKEN.",
+        "params": {
+            "chat_id":    "string — chat ID (optional — auto-read from TELEGRAM_CHAT_ID)",
+            "message_id": "integer — id of the message to edit (required)",
+            "text":       "string — new message text (required)",
+        },
+    },
+    {
+        "name": "telegram_delete_message",
+        "description": "Delete a Telegram message by id. Requires TELEGRAM_BOT_TOKEN.",
+        "params": {
+            "chat_id":    "string — chat ID (optional — auto-read from TELEGRAM_CHAT_ID)",
+            "message_id": "integer — id of the message to delete (required)",
+        },
+    },
+    {
+        "name": "telegram_pin_message",
+        "description": "Pin a message in a Telegram chat. Requires TELEGRAM_BOT_TOKEN.",
+        "params": {
+            "chat_id":    "string — chat ID (optional — auto-read from TELEGRAM_CHAT_ID)",
+            "message_id": "integer — id of the message to pin (required)",
+            "notify":     "boolean — notify chat members (optional, default false)",
+        },
+    },
+    {
+        "name": "telegram_send_photo",
+        "description": "Send a photo to a Telegram chat by URL or file_id. Requires TELEGRAM_BOT_TOKEN.",
+        "params": {
+            "chat_id": "string — chat ID (optional — auto-read from TELEGRAM_CHAT_ID)",
+            "photo":   "string — image URL or Telegram file_id (required)",
+            "caption": "string — optional caption text",
+        },
+    },
+    {
+        "name": "telegram_send_document",
+        "description": "Send a document to a Telegram chat by local path, URL, or file_id. Requires TELEGRAM_BOT_TOKEN.",
+        "params": {
+            "chat_id":  "string — chat ID (optional — auto-read from TELEGRAM_CHAT_ID)",
+            "document": "string — local file path, URL, or file_id (required)",
+            "filename": "string — filename to present (optional, default 'file.txt')",
+            "caption":  "string — optional caption text",
         },
     },
     {
@@ -2070,7 +2126,13 @@ _DISPATCH: dict[str, Callable] = {
     "video_list_generated": video_list_generated,
     "tts_speak":         tts_speak,
     # Messaging
-    "telegram_send":     telegram_send,
+    "telegram_send":          telegram_send,
+    "telegram_get_updates":   telegram_get_updates,
+    "telegram_edit_message":  telegram_edit_message,
+    "telegram_delete_message": telegram_delete_message,
+    "telegram_pin_message":   telegram_pin_message,
+    "telegram_send_photo":    telegram_send_photo,
+    "telegram_send_document": telegram_send_document,
     "clarify":           clarify,
     "todo":              todo,
     # Permanent knowledge

@@ -7,6 +7,8 @@ from tools.telegram_ops import (
     TelegramBot, TelegramUser, TelegramMessage, TelegramUpdate,
     CallbackQuery, InlineKeyboard, ParseMode,
     telegram_send, telegram_get_updates, send_message,
+    telegram_edit_message, telegram_delete_message, telegram_pin_message,
+    telegram_send_photo, telegram_send_document, _tg_result,
     _MAX_MESSAGE_LEN, _MAX_CAPTION_LEN,
 )
 
@@ -442,3 +444,81 @@ class TestRateLimit:
         bot._throttle("200")
         elapsed = time.time() - start
         assert elapsed < 1.0   # should not block (generous for CI + coverage overhead)
+
+
+# ── Registry tool wrappers (edit / delete / pin / photo / document) ───────────
+
+class TestToolWrappers:
+    def setup_method(self):
+        # ensure a clean env per test
+        import os
+        for k in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
+            os.environ.pop(k, None)
+
+    def test_result_normaliser(self):
+        assert _tg_result({"ok": True, "result": {"message_id": 7}}) == \
+            {"success": True, "error": "", "message_id": 7}
+        assert _tg_result({"ok": False, "description": "bad"})["success"] is False
+        assert _tg_result(None)["success"] is False
+
+    def test_edit_requires_token(self):
+        out = telegram_edit_message(text="x", chat_id=1, message_id=2)
+        assert out["success"] is False and "TELEGRAM_BOT_TOKEN" in out["error"]
+
+    def test_edit_requires_ids(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        out = telegram_edit_message(text="x", chat_id="", message_id=0)
+        assert out["success"] is False
+
+    def test_edit_calls_bot(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        with mock.patch.object(TelegramBot, "edit_message",
+                               return_value={"ok": True, "result": {"message_id": 5}}) as m:
+            out = telegram_edit_message(text="hi", chat_id=10, message_id=5)
+        assert out["success"] is True and out["message_id"] == 5
+        m.assert_called_once_with("10", 5, "hi")
+
+    def test_delete_calls_bot(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        with mock.patch.object(TelegramBot, "delete_message",
+                               return_value={"ok": True, "result": True}) as m:
+            out = telegram_delete_message(chat_id=10, message_id=5)
+        assert out["success"] is True
+        m.assert_called_once_with("10", 5)
+
+    def test_pin_calls_bot_with_notify(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        with mock.patch.object(TelegramBot, "pin_message",
+                               return_value={"ok": True, "result": True}) as m:
+            out = telegram_pin_message(chat_id=10, message_id=5, notify=True)
+        assert out["success"] is True
+        m.assert_called_once_with("10", 5, notify=True)
+
+    def test_chat_id_from_env(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "99")
+        with mock.patch.object(TelegramBot, "delete_message",
+                               return_value={"ok": True, "result": True}) as m:
+            telegram_delete_message(message_id=5)
+        m.assert_called_once_with("99", 5)
+
+    def test_send_photo(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        with mock.patch.object(TelegramBot, "send_photo",
+                               return_value={"ok": True, "result": {"message_id": 3}}) as m:
+            out = telegram_send_photo(photo="http://x/y.png", caption="cap", chat_id=10)
+        assert out["success"] is True and out["message_id"] == 3
+        m.assert_called_once_with("10", "http://x/y.png", caption="cap")
+
+    def test_send_photo_requires_photo(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        assert telegram_send_photo(photo="", chat_id=10)["success"] is False
+
+    def test_send_document(self, monkeypatch):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+        with mock.patch.object(TelegramBot, "send_document",
+                               return_value={"ok": True, "result": {"message_id": 8}}) as m:
+            out = telegram_send_document(document="/tmp/a.txt", filename="a.txt",
+                                         caption="c", chat_id=10)
+        assert out["success"] is True and out["message_id"] == 8
+        m.assert_called_once_with("10", "/tmp/a.txt", filename="a.txt", caption="c")
