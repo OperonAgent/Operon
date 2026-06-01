@@ -4,6 +4,45 @@ All notable changes to Operon are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] — 3.1.x — Competitiveness pass
+
+Real-engineering improvements raising Operon's depth in its weakest categories
+(context handling, voice, messaging, architecture). No cosmetic changes.
+
+### Added
+- **Real-time cloud streaming STT** — `CloudStreamingTranscriber` in
+  `core/voice_pipeline.py` streams microphone PCM to Deepgram's WebSocket API
+  for sub-second interim + final transcripts. `VoicePipeline.stream_listen`
+  now prefers the cloud streamer (when `DEEPGRAM_API_KEY` + `websocket-client`
+  are present) and falls back to the windowed local transcriber otherwise.
+  New `STTBackend.DEEPGRAM`.
+- **Deeper Slack toolset** — thread reading (`slack_get_thread`), message
+  editing (`slack_update_message`), scheduled sends (`slack_schedule_message`),
+  pin/unpin (`slack_pin_message`), channel topic (`slack_set_topic`), and a
+  Block Kit builder (`slack_build_blocks`).
+- **Telegram agent tools** — exposed the existing `TelegramBot` capabilities as
+  registry tools: `telegram_get_updates`, `telegram_edit_message`,
+  `telegram_delete_message`, `telegram_pin_message`, `telegram_send_photo`,
+  `telegram_send_document`.
+
+### Changed
+- **Non-blocking context compaction** wired into the agent loop
+  (`main._background_compact` + `BackgroundCompressor`): summarization runs
+  off-thread and merges on a later turn, with a synchronous hard-ceiling
+  fallback.
+- **`/macro` migrated** out of `main.py`'s elif-chain into
+  `cmd_handlers/macro_cmds.py` — the first stateful command extracted, proving
+  the live-module pattern for the rest of the modularization.
+
+### Fixed
+- Registry wiring gaps: only 4 of 17 Slack tools and 1 of 7 Telegram tools were
+  actually reachable by the agent; all are now registered (185 tools, with
+  definitions and dispatch kept in sync).
+
+### Tests
+- +66 tests: streaming voice (11), Slack depth (21), Telegram wrappers (20),
+  `/macro` migration (14).
+
 ## [3.1.0] — 2026-05-29 — Initial Public Beta
 
 First public release. Operon is an agentic AI terminal cockpit with 185+ tools,
