@@ -13,7 +13,7 @@ from tools.file_ops import (
     file_delete, dir_list, file_exists, file_info,
 )
 from tools.shell_exec  import shell_exec
-from tools.web_search  import duckduckgo_search, web_scrape, x_search
+from tools.web_search  import duckduckgo_search, web_scrape, x_search, tavily_search
 from tools.code_exec   import python_exec
 from tools.http_client import http_request
 from tools.file_search import file_search
@@ -229,6 +229,14 @@ _TOOL_DEFINITIONS = [
     {
         "name": "duckduckgo_search",
         "description": "Search the web via DuckDuckGo and return titles, URLs, and snippets. No API key required.",
+        "params": {
+            "query":       "string — search query (required)",
+            "max_results": "integer — number of results, default 6 (optional)",
+        },
+    },
+    {
+        "name": "tavily_search",
+        "description": "Search the web via the Tavily Search API. Returns titles, URLs, and snippets. Requires TAVILY_API_KEY.",
         "params": {
             "query":       "string — search query (required)",
             "max_results": "integer — number of results, default 6 (optional)",
@@ -2087,6 +2095,7 @@ _DISPATCH: dict[str, Callable] = {
     "shell_exec":        shell_exec,
     # Web
     "duckduckgo_search": duckduckgo_search,
+    "tavily_search":     tavily_search,
     "web_scrape":        web_scrape,
     # Code
     "python_exec":       python_exec,
@@ -2399,7 +2408,7 @@ TOOLSETS: dict[str, list[str]] = {
     "filesystem":  ["file_read", "file_write", "file_append", "file_patch",
                     "file_delete", "dir_list", "file_exists", "file_info", "file_search"],
     "shell":       ["shell_exec", "python_exec"],
-    "web":         ["duckduckgo_search", "web_scrape", "x_search", "http_request"],
+    "web":         ["duckduckgo_search", "tavily_search", "web_scrape", "x_search", "http_request"],
     "email":       ["email_draft"],
     "browser":     ["browser_navigate", "browser_snapshot", "browser_screenshot",
                     "browser_click", "browser_type", "browser_scroll", "browser_hover",
@@ -2471,7 +2480,8 @@ def _get_original_fn(tool_name: str):
         "file_read": file_read, "file_write": file_write, "file_append": file_append,
         "file_patch": file_patch, "file_delete": file_delete, "dir_list": dir_list,
         "file_exists": file_exists, "file_info": file_info, "shell_exec": shell_exec,
-        "duckduckgo_search": duckduckgo_search, "web_scrape": web_scrape,
+        "duckduckgo_search": duckduckgo_search, "tavily_search": tavily_search,
+        "web_scrape": web_scrape,
         "x_search": x_search, "python_exec": python_exec, "http_request": http_request,
         "file_search": file_search, "email_draft": email_draft,
         "browser_navigate": browser_navigate, "browser_snapshot": browser_snapshot,

@@ -3,12 +3,20 @@ Operon Web Tools.
 
   1. duckduckgo_search  — real-time DuckDuckGo search results (no API key)
   2. web_scrape         — fetch and extract clean text from any URL
+  3. tavily_search      — Tavily Search API (requires TAVILY_API_KEY)
 """
 
+import os
 import re
 import urllib.parse
 import requests
 from typing import Optional
+
+try:
+    from tavily import TavilyClient
+    _TAVILY = True
+except ImportError:
+    _TAVILY = False
 
 try:
     from bs4 import BeautifulSoup
@@ -217,3 +225,41 @@ def web_scrape(url: str, max_chars: int = 8000) -> dict:
         "content": text[:max_chars],
         "error":   "",
     }
+
+
+def tavily_search(query: str, max_results: int = 6) -> dict:
+    """
+    Search the web via the Tavily Search API and return structured results.
+    Requires TAVILY_API_KEY environment variable.
+
+    Returns:
+        {"success": bool, "results": [{"title", "url", "snippet"}, ...], "error": str}
+    """
+    api_key = os.environ.get("TAVILY_API_KEY")
+    if not api_key:
+        return {
+            "success": False,
+            "results": [],
+            "error": "TAVILY_API_KEY environment variable not set.",
+        }
+    if not _TAVILY:
+        return {
+            "success": False,
+            "results": [],
+            "error": "tavily-python not installed. Run: pip install tavily-python",
+        }
+
+    try:
+        client = TavilyClient(api_key=api_key)
+        response = client.search(query=query, max_results=max_results)
+        results = [
+            {
+                "title":   r.get("title", ""),
+                "url":     r.get("url", ""),
+                "snippet": r.get("content", ""),
+            }
+            for r in response.get("results", [])
+        ]
+        return {"success": True, "results": results, "error": ""}
+    except Exception as e:
+        return {"success": False, "results": [], "error": str(e)}

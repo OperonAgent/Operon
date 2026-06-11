@@ -37,6 +37,7 @@ TOOL_GROUPS: dict[str, list[str]] = {
     ],
     "search": [
         "web_search",
+        "tavily_search",
     ],
     "git": [
         "git_ops",
@@ -47,6 +48,7 @@ TOOL_GROUPS: dict[str, list[str]] = {
     ],
     "web": [
         "web_search",
+        "tavily_search",
         "http_client",
         "browser",
     ],
@@ -79,6 +81,7 @@ TOOL_GROUPS: dict[str, list[str]] = {
         "knowledge_ops",
         "file_search",
         "web_search",
+        "tavily_search",
     ],
     "media": [
         "vision",
@@ -97,13 +100,14 @@ TOOL_GROUPS: dict[str, list[str]] = {
 TOOLSETS: dict[str, list[str]] = {
     "core": [
         "shell_exec", "file_ops", "file_search", "web_search",
+        "tavily_search",
     ],
     "coding": [
         "shell_exec", "file_ops", "file_search", "git_ops",
         "code_exec", "cloud_exec", "apply_patch", "llm_task",
     ],
     "research": [
-        "web_search", "http_client", "browser", "file_ops",
+        "web_search", "tavily_search", "http_client", "browser", "file_ops",
         "file_search", "vision", "llm_task",
     ],
     "data": [
