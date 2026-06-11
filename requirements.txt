@@ -27,6 +27,9 @@ reportlab>=4.0.0              # PDF generation
 playwright>=1.40.0            # headless browser — then: python -m core.bootstrap --browser
 paramiko>=3.4.0               # SSH/SFTP; falls back to system ssh binary if absent
 
+# ── Optional: Tavily web search ────────────────────────────────────────────
+# tavily-python>=0.3.0           # Tavily Search API (requires TAVILY_API_KEY)
+
 # ── Optional: OpenAI / Anthropic vision, TTS, image gen ──────────────────────
 # openai>=1.30.0
 # anthropic>=0.25.0
