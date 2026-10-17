@@ -142,14 +142,49 @@ class _HttpTransport:
     Falls back to classic JSON-RPC POST if the server doesn't respond to /mcp.
     """
 
-    def __init__(self, url: str, headers: dict = None):
+    def __init__(self, url: str, headers: dict = None, *, exact_url: bool = False,
+                 auth=None):
         if not _HTTP_OK:
             raise ImportError("requests library required for HTTP MCP transport.")
         self._base = url.rstrip("/")
         self._headers = {"Content-Type": "application/json", **(headers or {})}
+        self._exact_url = exact_url
+        self._auth = auth
+
+    def _post_exact(self, message: dict, timeout: float) -> dict:
+        """Use a complete Streamable HTTP endpoint without endpoint retries."""
+        try:
+            with _requests.post(self._base, json=message, headers=self._headers,
+                                timeout=timeout, stream=True, auth=self._auth) as resp:
+                resp.raise_for_status()
+                if "id" not in message:
+                    return {}
+                if "text/event-stream" in resp.headers.get("Content-Type", ""):
+                    resp.encoding = "utf-8"
+                    data = []
+                    for line in resp.iter_lines(decode_unicode=True):
+                        if line.startswith("data:"):
+                            data.append(line[5:].lstrip(" "))
+                        elif not line and data:
+                            event = json.loads("\n".join(data))
+                            data = []
+                            if isinstance(event, dict) and event.get("id") == message["id"]:
+                                return event
+                    raise ValueError("MCP stream ended without a matching response")
+                result = resp.json()
+                if not isinstance(result, dict) or result.get("id") != message["id"]:
+                    raise ValueError("MCP response ID does not match request")
+                return result
+        except Exception as e:
+            return {"error": {"code": -1, "message": str(e)}}
+
+    def send_notification(self, method: str, timeout: float = 15.0) -> dict:
+        return self._post_exact({"jsonrpc": "2.0", "method": method}, timeout)
 
     def send_request(self, method: str, params: Any = None, timeout: float = 15.0) -> dict:
         req = _make_request(method, params)
+        if self._exact_url:
+            return self._post_exact(req, timeout)
         # Try /mcp endpoint first (Streamable HTTP), fall back to base URL
         for endpoint in (f"{self._base}/mcp", self._base):
             try:

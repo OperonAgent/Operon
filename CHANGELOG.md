@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — 3.1.x — Competitiveness pass
 
+### Added — Optional Parallel web research
+- `parallel_search` and `parallel_fetch` provide anonymous web search and source
+  page excerpts through Parallel Search MCP, using the existing HTTP client.
+  DuckDuckGo remains available. Both tools follow web-toolset disable controls
+  and normal tool approvals, with no additional dependency or API key.
+
 ### Added — Turn-completion notifications (harvested from Hermes)
 - **`core/notify.py`**: rings the terminal bell (`\a`, propagates over SSH) and
   optionally raises a native desktop notification (macOS `osascript`, Linux

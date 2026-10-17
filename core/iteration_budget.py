@@ -19,6 +19,7 @@ from typing import FrozenSet
 REFUNDABLE_TOOLS: FrozenSet[str] = frozenset({
     "file_read", "file_exists", "file_info", "dir_list", "file_search",
     "duckduckgo_search", "web_scrape", "web_fetch",
+    "parallel_search", "parallel_fetch",
     "browser_get_url", "browser_snapshot",
     "db_query", "knowledge_get", "knowledge_list",
     "git_status", "git_diff", "git_log",

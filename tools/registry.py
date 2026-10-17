@@ -14,6 +14,7 @@ from tools.file_ops import (
 )
 from tools.shell_exec  import shell_exec
 from tools.web_search  import duckduckgo_search, web_scrape, x_search
+from tools.parallel_search import parallel_search, parallel_fetch
 from tools.code_exec   import python_exec
 from tools.http_client import http_request
 from tools.file_search import file_search
@@ -240,6 +241,23 @@ _TOOL_DEFINITIONS = [
         "params": {
             "url":       "string — full URL to fetch (required)",
             "max_chars": "integer — max characters to return, default 8000 (optional)",
+        },
+    },
+    {
+        "name": "parallel_search",
+        "description": "Optional Parallel web search with focused excerpts and source URLs. No account or API key. Use when Parallel is requested; DuckDuckGo remains available.",
+        "params": {
+            "objective": "string — focused information to find (required)",
+            "search_queries": "array of strings — related keyword queries (required)",
+        },
+    },
+    {
+        "name": "parallel_fetch",
+        "description": "Extract source-page excerpts with Parallel. Use for a specific URL or when search excerpts are insufficient. No account or API key.",
+        "params": {
+            "urls": "array of strings — 1 to 20 HTTP(S) URLs (required)",
+            "objective": "string — information to find, up to 200 characters (optional)",
+            "full_content": "boolean — return full markdown, default false (optional)",
         },
     },
     # ── Code execution ────────────────────────────────────────────────────────
@@ -2088,6 +2106,8 @@ _DISPATCH: dict[str, Callable] = {
     # Web
     "duckduckgo_search": duckduckgo_search,
     "web_scrape":        web_scrape,
+    "parallel_search":   parallel_search,
+    "parallel_fetch":    parallel_fetch,
     # Code
     "python_exec":       python_exec,
     # HTTP
@@ -2399,7 +2419,8 @@ TOOLSETS: dict[str, list[str]] = {
     "filesystem":  ["file_read", "file_write", "file_append", "file_patch",
                     "file_delete", "dir_list", "file_exists", "file_info", "file_search"],
     "shell":       ["shell_exec", "python_exec"],
-    "web":         ["duckduckgo_search", "web_scrape", "x_search", "http_request"],
+    "web":         ["duckduckgo_search", "web_scrape", "x_search", "http_request",
+                    "parallel_search", "parallel_fetch"],
     "email":       ["email_draft"],
     "browser":     ["browser_navigate", "browser_snapshot", "browser_screenshot",
                     "browser_click", "browser_type", "browser_scroll", "browser_hover",
@@ -2472,6 +2493,7 @@ def _get_original_fn(tool_name: str):
         "file_patch": file_patch, "file_delete": file_delete, "dir_list": dir_list,
         "file_exists": file_exists, "file_info": file_info, "shell_exec": shell_exec,
         "duckduckgo_search": duckduckgo_search, "web_scrape": web_scrape,
+        "parallel_search": parallel_search, "parallel_fetch": parallel_fetch,
         "x_search": x_search, "python_exec": python_exec, "http_request": http_request,
         "file_search": file_search, "email_draft": email_draft,
         "browser_navigate": browser_navigate, "browser_snapshot": browser_snapshot,
