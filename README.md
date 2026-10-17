@@ -89,6 +89,27 @@ python -m core.bootstrap --browser  # just the Chromium binary
 python -m core.bootstrap --check    # status only
 ```
 
+## Optional Parallel web research
+
+Ask Operon to use `parallel_search` for focused web excerpts with source URLs,
+and `parallel_fetch` to read a specific page when those excerpts are insufficient.
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+provides these tools without an account, API key, or additional package.
+DuckDuckGo and `web_scrape` remain available; Parallel is an explicit alternative.
+
+For example: `Use parallel_search to find Python 3.13 release highlights, then
+summarize the excerpts with source links.` Search accepts an `objective` and
+`search_queries` (a list of related keyword queries). Fetch accepts `urls` (up to
+20 HTTP(S) URLs), an optional `objective` of up to 200 characters, and
+`full_content=true` when the entire page markdown is needed.
+
+Queries and fetched URLs are sent to `https://search.parallel.ai/mcp`. Anonymous
+usage has service limits; errors are returned without switching providers.
+Requests time out after 15 seconds for setup/discovery and 30 seconds for the
+tool call. Ctrl-C interrupts the call. `/toolsets disable web` disables both
+Parallel tools alongside the other web tools; `/toolsets enable web` restores
+them. Normal `/approve on` prompts and delegated-agent tool restrictions apply.
+
 ## Updating
 
 ```bash
